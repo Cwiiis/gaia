@@ -95,7 +95,7 @@ suite('GaiaGrid > DragDrop', function() {
 
     // The current positions are second -> first -> placeholder
     // Simulate a drop past the placeholder (index 2).
-    subject.rearrange(2);
+    subject.rearrange(0, 2);
 
     assert.equal(grid.items[0].name, 'first');
     assert.equal(grid.items[1].name, 'second');
