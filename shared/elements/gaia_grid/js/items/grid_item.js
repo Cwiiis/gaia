@@ -349,8 +349,10 @@
      * Renders the icon to the container.
      * @param {Array} coordinates Grid coordinates to render to.
      * @param {Number} index The index of the items list of this item.
+     * @param {Boolean} useTransform Use a transform instead of left/top to
+     * position the item
      */
-    render: function(coordinates, index) {
+    render: function(coordinates, index, useTransform) {
       // Generate an element if we need to
       if (!this.element) {
         var tile = document.createElement('div');
@@ -428,16 +430,40 @@
         return;
       }
 
-      this.transform(x, y, 1);
+      this.transform(x, y, 1, useTransform);
     },
 
     /**
      * Positions and scales an icon.
      */
-    transform: function(x, y, scale) {
-      scale = scale || 1;
-      this.element.style.transform =
-        'translate(' + x + 'px,' + y + 'px) scale(' + scale + ')';
+    transform: function(x, y, scale, useTransform) {
+      // There are two paths to position the icon, one using transforms and
+      // the other using absolute positioning. Both paths cause different
+      // layerisation behaviour in Gecko, and so either may be more
+      // performant depending on what properties are applied to the icon and
+      // its children.
+      if (useTransform) {
+        scale = scale || 1;
+        this.element.style.left = '';
+        this.element.style.top = '';
+        this.element.style.transform =
+          'translate(' + x + 'px,' + y + 'px) scale(' + scale + ')';
+
+        // Force a style computation so that the above doesn't incorrectly
+        // transition before adding this class
+        this.element.clientTop;
+
+        this.element.classList.add('has-transform');
+      } else {
+        this.element.classList.remove('has-transform');
+        this.element.style.left = x + 'px';
+        this.element.style.top = y + 'px';
+        if (scale && scale != 1) {
+          this.element.style.transform = 'scale(' + scale + ')';
+        } else {
+          this.element.style.transform = '';
+        }
+      }
     }
   };
 

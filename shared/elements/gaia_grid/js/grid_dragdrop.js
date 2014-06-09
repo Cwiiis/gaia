@@ -23,9 +23,8 @@
 
   function DragDrop(gridView) {
     this.gridView = gridView;
-    this.container = gridView.element;
-    this.scrollable = this.container.parentNode;
-    this.container.addEventListener('contextmenu', this);
+    this.container = gridView.element.parentElement;
+    gridView.element.addEventListener('contextmenu', this);
   }
 
   DragDrop.prototype = {
@@ -72,8 +71,8 @@
       this.icon.noTransform = true;
       this.rearrangeDelay = null;
       this.enterEditMode();
-      this.container.classList.add('dragging');
       this.target.classList.add('active');
+      this.gridView.element.classList.add('dragging');
 
       // Testing with some extra offset (20)
       this.xAdjust = this.gridView.layout.gridItemWidth / 2 + 20;
@@ -86,8 +85,8 @@
 
       // Make the icon larger.
       var iconX = e.pageX - this.xAdjust;
-      var iconY = e.pageY - this.yAdjust + this.scrollable.scrollTop;
-      this.icon.transform(iconX, iconY, ACTIVE_SCALE);
+      var iconY = e.pageY - this.yAdjust + this.container.scrollTop;
+      this.icon.transform(iconX, iconY, ACTIVE_SCALE, true);
     },
 
     finish: function(e) {
@@ -155,13 +154,13 @@
       function doScroll(amount) {
         /* jshint validthis:true */
         this.isScrolling = true;
-        this.scrollable.scrollTop += amount;
+        this.container.scrollTop += amount;
         exports.requestAnimationFrame(this.scrollIfNeeded.bind(this));
         touch.pageY += amount;
         this.positionIcon(touch.pageX, touch.pageY);
       }
 
-      var docScroll = this.scrollable.scrollTop;
+      var docScroll = this.container.scrollTop;
       var distanceFromTop = Math.abs(touch.pageY - docScroll);
       if (distanceFromTop > SCREEN_HEIGHT - EDGE_PAGE_THRESHOLD) {
         var maxY = this.maxScroll;
@@ -192,7 +191,8 @@
       this.icon.transform(
         pageX,
         pageY,
-        ACTIVE_SCALE);
+        ACTIVE_SCALE,
+        true);
 
       // Reposition in the icons array if necessary.
       // Find the icon with the closest X/Y position of the move,
@@ -256,17 +256,23 @@
         to = this.gridView.items.length - 1;
       }
 
+      // This first call will make sure that all the grid items have been
+      // positioned with transforms instead of left/top so the transition
+      // works correctly.
+      this.gridView.render({from: from, to: to, useTransform: true});
+
       // Rearrange items
       this.gridView.items.splice(tIndex, 0,
         this.gridView.items.splice(sIndex, 1)[0]);
       this.gridView.visibilityCalculated = false;
 
-      this.gridView.render({from: from, to: to});
+      // Final render to animate items to their new positions
+      this.gridView.render({from: from, to: to, useTransform: true});
     },
 
     enterEditMode: function() {
       this.inEditMode = true;
-      this.container.classList.add('edit-mode');
+      this.gridView.element.classList.add('edit-mode');
       document.body.classList.add('edit-mode');
       window.dispatchEvent(new CustomEvent('gaiagrid-editmode-start'));
       document.addEventListener('visibilitychange', this);
@@ -274,7 +280,7 @@
 
     exitEditMode: function() {
       this.inEditMode = false;
-      this.container.classList.remove('edit-mode');
+      this.gridView.element.classList.remove('edit-mode');
       document.body.classList.remove('edit-mode');
       window.dispatchEvent(new CustomEvent('gaiagrid-editmode-end'));
       document.removeEventListener('visibilitychange', this);
@@ -340,7 +346,7 @@
           case 'touchmove':
             var touch = e.touches[0];
 
-            var pageY = touch.pageY + this.scrollable.scrollTop;
+            var pageY = touch.pageY + this.container.scrollTop;
             this.positionIcon(touch.pageX, pageY);
 
             this.currentTouch = {
@@ -371,9 +377,15 @@
               return;
             }
 
-            this.container.classList.remove('dragging');
+            this.gridView.element.classList.remove('dragging');
             this.icon.element.removeEventListener('transitionend', this);
             this.icon = null;
+
+            // Re-render the grid view without using transforms
+            this.gridView.render();
+
+            // Recalculate visibility as we've moved icons about
+            this.gridView.calcVisibility();
 
             break;
         }

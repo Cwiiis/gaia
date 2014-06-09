@@ -94,12 +94,12 @@
 
     start: function() {
       this.element.addEventListener('click', this.clickIcon);
-      window.addEventListener('scroll', this.onScroll);
+      this.element.parentElement.addEventListener('scroll', this.onScroll);
     },
 
     stop: function() {
       this.element.removeEventListener('click', this.clickIcon);
-      window.removeEventListener('scroll', this.onScroll);
+      this.element.parentElement.removeEventListener('scroll', this.onScroll);
     },
 
     onScroll: function(e) {
@@ -240,7 +240,7 @@
      * @param {Integer} idx The position of the first placeholder.
      * @param {Integer} idx The number of placeholders to create.
      */
-    createPlaceholders: function(coordinates, idx, count) {
+    createPlaceholders: function(coordinates, idx, count, useTransform) {
       for (var i = 0; i < count; i++) {
         var itemCoords = [
           coordinates[0] + i,
@@ -249,7 +249,7 @@
 
         var item = new Placeholder();
         this.items.splice(idx + i, 0, item);
-        item.render(itemCoords, idx + i);
+        item.render(itemCoords, idx + i, useTransform);
       }
     },
 
@@ -261,6 +261,8 @@
      *  - from {Integer} The index to start rendering from.
      *  - to {Integer} The index to end rendering at.
      *  - skipDivider {Boolean} Whether or not to skip the divider
+     *  - useTransform {Boolean} Whether to render items using transforms or
+     *    absolute positioning.
      */
     render: function(options) {
       var self = this;
@@ -322,7 +324,7 @@
 
           // Insert placeholders to fill remaining space
           var remaining = this.layout.cols - x;
-          this.createPlaceholders([x, y], idx, remaining);
+          this.createPlaceholders([x, y], idx, remaining, options.useTransform);
 
           // Increment the current index due to divider insertion
           idx += remaining;
@@ -346,7 +348,7 @@
         // at the beginning of this function means fromItem is a placeholder
         // or a removed divider.
         if (idx >= from || idx >= to) {
-          item.render([x, y], idx);
+          item.render([x, y], idx, options.useTransform);
         }
 
         // Increment the x-step by the sizing of the item.
@@ -358,6 +360,11 @@
       }
 
       this.element.setAttribute('cols', this.layout.cols);
+
+      // Set our height based on position of the last item
+      if (setContainerHeight) {
+        this.element.style.height = (this.layout.offsetY + this.layout.gridItemHeight) + 'px';
+      }
 
       // Reset offsetY as stepYAxis changes it and it may be needed elsewhere.
       this.layout.offsetY = 0;
