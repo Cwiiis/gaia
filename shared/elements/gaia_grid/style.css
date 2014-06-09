@@ -25,10 +25,13 @@
   position: absolute;
   transform-origin: 0 0;
   display: inline-block;
-  width: calc(100% / 3);
   text-align: center;
-  background: no-repeat top center;
   z-index: 3;
+}
+
+.icon .image {
+  display: inline-block;
+  pointer-events: none;
 }
 
 .icon p {

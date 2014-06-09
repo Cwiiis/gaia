@@ -76,8 +76,6 @@
      */
     gridWidth: 1,
 
-    scale: 1,
-
     /**
      * Whether or not this icon will persist to the database.
      */
@@ -204,17 +202,26 @@
         clipImage.onload = function clip_onload() {
           shadowCtx.drawImage(clipImage, CANVAS_PADDING, CANVAS_PADDING,
                                 MAX_ICON_SIZE, MAX_ICON_SIZE);
+<<<<<<< HEAD
           shadowCanvas.toBlob(this._displayDecoratedIcon.bind(this));
+=======
+          this.renderIconFromURL(shadowCanvas.toDataURL());
+>>>>>>> Bug 1022713 - Separate grid icon into a separate element. r=
         }.bind(this);
         clipImage.src = clipCanvas.toDataURL();
       } else {
         shadowCtx.drawImage(img, CANVAS_PADDING, CANVAS_PADDING,
                       MAX_ICON_SIZE, MAX_ICON_SIZE);
+<<<<<<< HEAD
         shadowCanvas.toBlob(this._displayDecoratedIcon.bind(this));
+=======
+        this.renderIconFromURL(shadowCanvas.toDataURL());
+>>>>>>> Bug 1022713 - Separate grid icon into a separate element. r=
       }
     },
 
     /**
+<<<<<<< HEAD
      * Finishes decoration process and displays the augmented icon.
      *
      * @param {Blob} blob The image blob to display.
@@ -226,6 +233,15 @@
         UNSCALED_CANVAS_PADDING) +'px';
       this.element.style.backgroundImage =
         'url(' + URL.createObjectURL(blob) + ')';
+=======
+     * Renders an icon by url
+     * @param {String} url The image url to render.
+     */
+    renderIconFromURL: function(url) {
+      if (this.iconElement) {
+        this.iconElement.src = url;
+      }
+>>>>>>> Bug 1022713 - Separate grid icon into a separate element. r=
     },
 
     /**
@@ -335,8 +351,6 @@
      * @param {Number} index The index of the items list of this item.
      */
     render: function(coordinates, index) {
-      this.scale = this.grid.layout.percent;
-
       // Generate an element if we need to
       if (!this.element) {
         var tile = document.createElement('div');
@@ -344,11 +358,13 @@
         tile.dataset.identifier = this.identifier;
         tile.setAttribute('role', 'link');
 
+        var icon = document.createElement('img');
+        icon.className = 'image';
+        tile.appendChild(icon);
+
         // This <p> has been added in order to place the title with respect
         // to this container via CSS without touching JS.
         var nameContainerEl = document.createElement('p');
-        nameContainerEl.style.marginTop = (this.grid.layout.gridIconSize *
-                                          (1 / this.scale)) + 'px';
         tile.appendChild(nameContainerEl);
 
         var nameEl = document.createElement('span');
@@ -364,22 +380,55 @@
         }
 
         this.element = tile;
+<<<<<<< HEAD
         this.renderIcon();
+=======
+        this.iconElement = icon;
+
+        if (this.isIconFromOrigin()) {
+          LazyLoader.load(
+            ['/shared/js/async_storage.js',
+             '/shared/elements/gaia_grid/js/icon_retriever.js'], function() {
+            var app = this.app;
+            // The download should finish when the icon is local
+            if (app && app.downloading && this.icon.startsWith('app:')) {
+              this.showDownloading();
+              app.ondownloadsuccess = app.ondownloaderror = function() {
+                app.ondownloadsuccess = app.ondownloaderror = null;
+                IconRetriever.get(this, this.hideDownloading.bind(this));
+              }.bind(this);
+              return;
+            }
+            IconRetriever.get(this);
+          }.bind(this));
+        } else {
+          this.displayIcon();
+        }
+
+>>>>>>> Bug 1022713 - Separate grid icon into a separate element. r=
         this.grid.element.appendChild(tile);
       }
 
-      var x = coordinates[0] * this.grid.layout.gridItemWidth;
+      // XXX Ideally we'd set this in the CSS using calc(100% / columnWidth),
+      //     but it's a lot less hassle to set it here.
+      var width = this.grid.layout.gridItemWidth;
+
+      var x = coordinates[0] * width;
       var y = this.grid.layout.offsetY;
+      this.element.style.width = width + 'px';
       this.setPosition(index);
       this.x = x;
       this.y = y;
+      if (this.iconElement) {
+        this.iconElement.style.height = (this.grid.layout.gridIconSize) + 'px';
+      }
 
       // Avoid rendering the icon during a drag to prevent jumpiness
       if (this.noTransform) {
         return;
       }
 
-      this.transform(x, y, this.grid.layout.percent);
+      this.transform(x, y, 1);
     },
 
     /**
