@@ -42,6 +42,11 @@ gaia-grid {
   pointer-events: none;
 }
 
+.icon.visible .image {
+  transition: opacity 0.4s;
+  transition-delay: 0.3s;
+}
+
 .icon p {
   pointer-events: none;
   height: 3.2rem;
@@ -115,6 +120,30 @@ gaia-grid {
   width: 2.6rem;
   height: 2.6rem;
   background: url(images/remove.png) no-repeat;
+}
+
+/* Bug 1018269: This has no effect when this style is in a scoped style and
+ *              needs to be redefined at the top level.
+ */
+@keyframes pulse {
+  from { opacity: 0.65; }
+  to { opacity: 1.0; }
+}
+
+.edit-mode .icon:not(.active) .image {
+  animation-name: pulse;
+  animation-duration: 0.4s;
+  animation-delay: 0.5s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+  opacity: 0.65;
+}
+
+.edit-mode.dragging .icon .image,
+.edit-mode.scrolling .icon .image,
+.edit-mode .icon:not(.visible) .image {
+  animation-name: none;
 }
 
 .icon .remove {

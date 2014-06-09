@@ -68,3 +68,9 @@ html, body {
 #contextmenu-dialog {
   display: none;
 }
+
+/* Copied from gaia_grid/style.css, necessary until bug 1018269 is fixed */
+@keyframes pulse {
+  from { opacity: 1.0; }
+  to { opacity: 0.65; }
+}
