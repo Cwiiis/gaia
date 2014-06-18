@@ -12,6 +12,8 @@
    * within a length of a page edge configured by this value */
   const EDGE_PAGE_THRESHOLD = 50;
 
+  /* This delay is the time to wait before rearranging a collection. */
+  const REARRANGE_COLLECTION_DELAY = 1500;
 
   const SCREEN_HEIGHT = window.innerHeight;
 
@@ -255,8 +257,10 @@
         this.hoverItem = foundItem;
         this.hoverItem.element.classList.add('hovered');
         this.doRearrange = this.rearrange.bind(this, foundIndex);
-        this.rearrangeDelay = setTimeout(this.doRearrange.bind(this),
-                                         REARRANGE_DELAY);
+        this.rearrangeDelay =
+          setTimeout(this.doRearrange.bind(this),
+            this.hoverItem instanceof GaiaGrid.Collection ?
+              REARRANGE_COLLECTION_DELAY : REARRANGE_DELAY);
       }
     },
 
