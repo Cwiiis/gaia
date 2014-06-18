@@ -2,19 +2,20 @@
 
 (function(exports) {
 
-  const activeScaleAdjust = 0.4;
+  const ACTIVE_SCALE_ADJUST = 0.4;
 
   /* This delay is the time passed once users stop the finger over an icon and
    * the rearrange is performed */
-  const rearrangeDelay = 30;
+  const REARRANGE_DELAY = 30;
 
   /* The page is scrolled via javascript if an icon is being moved, and is
    * within a length of a page edge configured by this value */
-  const edgePageThreshold = 50;
+  const EDGE_PAGE_THRESHOLD = 50;
 
-  const screenHeight = window.innerHeight;
 
-  const scrollStep = Math.round(screenHeight / edgePageThreshold);
+  const SCREEN_HEIGHT = window.innerHeight;
+
+  const scrollStep = Math.round(SCREEN_HEIGHT / EDGE_PAGE_THRESHOLD);
 
   /* The scroll step will be 10 times bigger over the edge */
   const maxScrollStepFactor = 10;
@@ -51,7 +52,7 @@
      * Returns the maximum active scale value.
      */
     get maxActiveScale() {
-      return 1 + activeScaleAdjust;
+      return 1 + ACTIVE_SCALE_ADJUST;
     },
 
     /**
@@ -90,7 +91,7 @@
       this.icon.transform(
         e.pageX - this.xAdjust,
         e.pageY - this.yAdjust + this.scrollable.scrollTop,
-        this.icon.scale + activeScaleAdjust);
+        this.icon.scale + ACTIVE_SCALE_ADJUST);
     },
 
     finish: function(e) {
@@ -128,13 +129,14 @@
      * The closer to edge the faster (bigger step).
      ** Distance 0px -> 10 times faster
      ** Distance 25px -> 5 times faster
-     ** Distance 50px (edgePageThreshold) -> 0 times
+     ** Distance 50px (EDGE_PAGE_THRESHOLD) -> 0 times
      */
     getScrollStep: function(distanceToEdge) {
       var factor = maxScrollStepFactor;
 
       if (distanceToEdge > 0) {
-        factor *= ((edgePageThreshold - distanceToEdge) / edgePageThreshold);
+        factor *= ((EDGE_PAGE_THRESHOLD - distanceToEdge) /
+                   EDGE_PAGE_THRESHOLD);
       }
 
       return Math.round(scrollStep * factor);
@@ -164,9 +166,9 @@
 
       var docScroll = this.scrollable.scrollTop;
       var distanceFromTop = Math.abs(touch.pageY - docScroll);
-      if (distanceFromTop > screenHeight - edgePageThreshold) {
+      if (distanceFromTop > SCREEN_HEIGHT - EDGE_PAGE_THRESHOLD) {
         var maxY = this.maxScroll;
-        var scrollStep = this.getScrollStep(screenHeight - distanceFromTop);
+        var scrollStep = this.getScrollStep(SCREEN_HEIGHT - distanceFromTop);
         // We cannot exceed the maximum scroll value
         if (touch.pageY >= maxY || maxY - touch.pageY < scrollStep) {
           this.isScrolling = false;
@@ -174,7 +176,7 @@
         }
 
         doScroll.call(this, scrollStep);
-      } else if (touch.pageY > 0 && distanceFromTop < edgePageThreshold) {
+      } else if (touch.pageY > 0 && distanceFromTop < EDGE_PAGE_THRESHOLD) {
         doScroll.call(this, 0 - this.getScrollStep(distanceFromTop));
       } else {
         this.isScrolling = false;
@@ -193,7 +195,7 @@
       this.icon.transform(
         pageX,
         pageY,
-        this.icon.scale + activeScaleAdjust);
+        this.icon.scale + ACTIVE_SCALE_ADJUST);
 
       // Reposition in the icons array if necessary.
       // Find the icon with the closest X/Y position of the move,
@@ -222,7 +224,7 @@
         clearTimeout(this.rearrangeDelay);
         this.doRearrange = this.rearrange.bind(this, foundIndex);
         this.rearrangeDelay = setTimeout(this.doRearrange.bind(this),
-                                         rearrangeDelay);
+                                         REARRANGE_DELAY);
       }
     },
 
