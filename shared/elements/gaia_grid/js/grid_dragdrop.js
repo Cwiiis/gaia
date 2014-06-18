@@ -49,6 +49,12 @@
     inEditMode: false,
 
     /**
+     * The item being hovered over.
+     * @type {GaiaGrid.GridItem}
+     */
+    hoverItem: null,
+
+    /**
      * Returns the maximum active scale value.
      */
     get maxActiveScale() {
@@ -73,6 +79,7 @@
       window.dispatchEvent(new CustomEvent('gaiagrid-dragdrop-begin'));
 
       this.icon.noTransform = true;
+      this.hoverItem = null;
       this.rearrangeDelay = null;
       this.enterEditMode();
       this.container.classList.add('dragging');
@@ -123,6 +130,18 @@
         this.gridView.start();
         window.dispatchEvent(new CustomEvent('gaiagrid-dragdrop-finish'));
       }.bind(this));
+    },
+
+    finalize: function() {
+      this.container.classList.remove('dragging');
+      if (this.icon) {
+        this.icon.element.removeEventListener('transitionend', this);
+        this.icon = null;
+      }
+      if (this.hoverItem) {
+        this.hoverItem.element.classList.remove('hovered');
+        this.hoverItem = null;
+      }
     },
 
     /**
@@ -201,8 +220,8 @@
       // Find the icon with the closest X/Y position of the move,
       // and insert ours before it.
       // Todo: this could be more efficient with a binary search.
-      var leastDistance;
-      var foundIndex;
+      var leastDistance, foundItem;
+      var foundIndex = this.icon.detail.index;
       for (var i = 0, iLen = this.gridView.items.length; i < iLen; i++) {
         var item = this.gridView.items[i];
 
@@ -217,11 +236,24 @@
         if (!leastDistance || distance < leastDistance) {
           leastDistance = distance;
           foundIndex = i;
+          foundItem = item;
         }
       }
 
-      if (foundIndex !== this.icon.detail.index) {
+      // Clear the rearrange delay and hover item if we aren't hovering over
+      // anything.
+      if (this.rearrangeDelay) {
         clearTimeout(this.rearrangeDelay);
+        this.rearrangeDelay = null;
+      }
+      if (this.hoverItem) {
+        this.hoverItem.element.classList.remove('hovered');
+        this.hoverItem = null;
+      }
+
+      if (foundIndex !== this.icon.detail.index) {
+        this.hoverItem = foundItem;
+        this.hoverItem.element.classList.add('hovered');
         this.doRearrange = this.rearrange.bind(this, foundIndex);
         this.rearrangeDelay = setTimeout(this.doRearrange.bind(this),
                                          REARRANGE_DELAY);
@@ -265,18 +297,19 @@
     },
 
     exitEditMode: function() {
+      // If we're in the middle of a drag, cancel it.
+      if (this.icon) {
+        this.finish();
+        this.finalize();
+      }
+
       this.inEditMode = false;
       this.container.classList.remove('edit-mode');
       document.body.classList.remove('edit-mode');
       window.dispatchEvent(new CustomEvent('gaiagrid-editmode-end'));
       document.removeEventListener('visibilitychange', this);
       this.removeDragHandlers();
-      this.gridView.removeAllPlaceholders();
-
-      if (this.icon) {
-        this.icon.element.removeEventListener('transitionend', this);
-        this.icon = null;
-      }
+      this.gridView.render({skipItems: true});
     },
 
     removeDragHandlers: function() {
@@ -353,6 +386,7 @@
           case 'touchcancel':
             this.removeDragHandlers();
             this.finish();
+            this.finalize();
             break;
           case 'touchend':
             // Ensure the app is not launched
@@ -363,14 +397,7 @@
             break;
 
           case 'transitionend':
-            if (!this.icon) {
-              return;
-            }
-
-            this.container.classList.remove('dragging');
-            this.icon.element.removeEventListener('transitionend', this);
-            this.icon = null;
-
+            this.finalize();
             break;
         }
     }
