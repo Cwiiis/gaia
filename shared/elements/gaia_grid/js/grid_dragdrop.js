@@ -113,10 +113,19 @@
       this.target.classList.remove('active');
       delete this.icon.noTransform;
 
+      var rearranged = false;
       if (this.rearrangeDelay !== null) {
         clearTimeout(this.rearrangeDelay);
-        this.doRearrange.call(this);
-      } else {
+        if (this.hoverItem instanceof GaiaGrid.Collection) {
+          // The user has dropped into a collection
+          console.log("Dragged to collection: ", this.icon, this.hoverItem);
+        } else {
+          rearranged = true;
+          this.doRearrange.call(this);
+        }
+      }
+
+      if (!rearranged) {
         this.gridView.render();
       }
 
