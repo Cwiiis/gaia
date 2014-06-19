@@ -57,6 +57,11 @@
     hoverItem: null,
 
     /**
+     * A port for IAC to the collections app.
+     */
+    collectionsPort: null,
+
+    /**
      * Returns the maximum active scale value.
      */
     get maxActiveScale() {
@@ -118,7 +123,30 @@
         clearTimeout(this.rearrangeDelay);
         if (this.hoverItem instanceof GaiaGrid.Collection) {
           // The user has dropped into a collection
-          console.log("Dragged to collection: ", this.icon, this.hoverItem);
+          var message = {
+            "collection-id": this.hoverItem.detail.id,
+            "application-id": this.icon.detail.manifestURL
+          };
+          if (!this.collectionsPort) {
+            var self = this;
+            navigator.mozApps.getSelf().onsuccess = function(evt) {
+              var app = evt.target.result;
+              if (app.connect) {
+                app.connect('add-to-collection').then(function onConnAccepted(ports) {
+                  console.error('Got port', ports.length);
+                  self.collectionsPort = ports[0];
+                  ports[0].postMessage(message);
+                }, function onConnRejected(reason) {
+                  console.error('Cannot notify collection: ', reason);
+                });
+              } else {
+                console.error ('mozApps does not have a connect method. ' +
+                               'Cannot launch the collection preload process.');
+              }
+            };
+          } else {
+            this.collectionsPort.postMessage(message);
+          }
         } else {
           rearranged = true;
           this.doRearrange.call(this);
