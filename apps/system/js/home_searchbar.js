@@ -133,15 +133,28 @@
       case 'global-search-request':
         // XXX: fix the WindowManager coupling
         // but currently the transition sequence is crucial for performance
+        var isExpanding = false;
         var app = AppWindowManager.getActiveApp();
         if (app && app.getTopMostWindow().titleBar) {
           var top = app.getTopMostWindow();
-          top.titleBar.expand(function() {
-            this.activate(setTimeout.bind(null, this.focus.bind(this)));
-          }.bind(this));
-        } else {
+          if (!top.titleBar.isExpanded()) {
+            isExpanding = true;
+            top.titleBar.expand(function() {
+              this.activate(setTimeout.bind(null, this.focus.bind(this)));
+              window.addEventListener('rocketbar-overlayopened', this);
+            }.bind(this));
+          }
+        }
+        if (!isExpanding) {
           this.activate(setTimeout.bind(null, this.focus.bind(this)));
         }
+        break;
+      case 'rocketbar-overlayopened':
+        var app = AppWindowManager.getActiveApp();
+        if (app && app.titleBar) {
+          app.titleBar.collapse();
+        }
+        window.removeEventListener('rocketbar-overlayopened', this);
         break;
     }
   };

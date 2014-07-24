@@ -351,7 +351,7 @@
     }
     this.debug(' ...revived!');
     this.browser = new self.BrowserFrame(this.browser_config);
-    this.element.appendChild(this.browser.element);
+    this.container.appendChild(this.browser.element);
     this.iframe = this.browser.element;
     this.launchTime = Date.now();
     this.suspended = false;
@@ -373,7 +373,7 @@
     this.loaded = false;
     this.suspended = true;
     this.element.classList.add('suspended');
-    this.element.removeChild(this.browser.element);
+    this.browser.element.parentNode.removeChild(this.browser.element);
     this.browser = null;
     this.publish('suspended');
   };
@@ -496,6 +496,7 @@
     return '<div class=" ' + this.CLASS_LIST +
             ' " id="' + this.instanceID +
             '" transition-state="closed">' +
+              '<div class="statusbar-icons-mirror"></div>' +
               '<div class="screenshot-overlay"></div>' +
               '<div class="identification-overlay">' +
                 '<div>' +
@@ -547,7 +548,11 @@
       this.element.classList.add('fullscreen-app');
     }
 
-    this.element.appendChild(this.browser.element);
+    var container = this.container = document.createElement('div');
+    container.className = 'browser-container';
+    container.scrollgrab = true;
+    container.appendChild(this.browser.element);
+    this.element.appendChild(container);
 
     // Intentional! The app in the iframe gets two resize events when adding
     // the element to the page (see bug 1007595). The first one is incorrect,
@@ -649,7 +654,7 @@
      'mozbrowsertitlechange', 'mozbrowserlocationchange',
      'mozbrowsermetachange', 'mozbrowsericonchange', 'mozbrowserasyncscroll',
      '_localized', '_swipein', '_swipeout', '_kill_suspended',
-     '_orientationchange', '_focus'];
+     '_orientationchange', '_focus', 'touchstart', 'touchcancel', 'touchend'];
 
   AppWindow.SUB_COMPONENTS = {
     'transitionController': window.AppTransitionController,
@@ -895,6 +900,9 @@
       // Integration test needs to locate the frame by this attribute.
       this.browser.element.dataset.url = evt.detail;
       this.publish('locationchange');
+
+      // Make sure the titlebar is in the correct state
+      this._handle_scroll();
     };
 
 
@@ -932,6 +940,72 @@
       this.publish('scroll');
     };
 
+  /**
+   * Animates the browser container to the nearest extent of its vertical
+   * scroll range.
+   */
+  AppWindow.prototype._animate_container = function() {
+    this._cancel_animate_container();
+
+    if (this.container.scrollTop != 0 &&
+        this.container.scrollTop != this.container.scrollTopMax) {
+      this.containerScrollTimeout = setTimeout(function() {
+        if (this.container.scrollTopMax - this.container.scrollTop <
+            this.container.scrollTop) {
+          this.container.scrollTop = this.container.scrollTopMax;
+        } else {
+          this.container.scrollTop = 0;
+        }
+      }.bind(this), 500);
+    }
+  };
+
+  AppWindow.prototype._cancel_animate_container = function() {
+    if (this.containerScrollTimeout) {
+      clearTimeout(this.containerScrollTimeout);
+      this.containerScrollTimeout = null;
+    }
+  };
+
+  AppWindow.prototype._handle_scroll =
+    function aw__handle_scroll(evt) {
+      if (!this.titleBar || !this.container.scrollTopMax) {
+        return;
+      }
+
+      // Ideally we'd animate based on scroll position, but until we have
+      // the necessary spec and implementation, we'll animate completely to
+      // the expanded or collapsed state at the mid-way point.
+      if (this.container.scrollTop > this.container.scrollTopMax / 2) {
+        this.element.classList.remove('expand');
+        this.titleBar.collapse();
+      } else {
+        this.element.classList.add('expand');
+        this.titleBar.expand();
+      }
+
+      if (!this.touching) {
+        this._animate_container();
+      }
+    };
+
+  AppWindow.prototype._handle_touchstart =
+    function aw__handle_touchstart(evt) {
+      this.touching = true;
+      this._cancel_animate_container();
+    };
+
+  AppWindow.prototype._handle_touchcancel =
+  AppWindow.prototype._handle_touchend =
+    function aw__handle_touchend(evt) {
+      if (evt.touches.length > 0) {
+        return;
+      }
+
+      this.touching = false;
+      this._animate_container();
+    };
+
   AppWindow.prototype._handle_mozbrowsermetachange =
     function aw__handle_mozbrowsermetachange(evt) {
       var detail = evt.detail;
@@ -964,6 +1038,7 @@
         this.element.addEventListener(evt, this);
       }
     }, this);
+    this.element.addEventListener('scroll', this, true);
   };
 
   /**
