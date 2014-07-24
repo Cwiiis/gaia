@@ -131,14 +131,25 @@
         }
         break;
       case 'global-search-request':
+        // Activate the rocketbar. If the app's title-bar was collapsed,
+        // expand it first and setup an event handler to collapse it once
+        // the rocketbar is open.
         var app = AppWindowManager.getActiveApp();
-        if (app && app.titleBar) {
+        if (app && app.titleBar && !app.titleBar.isExpanded()) {
           app.titleBar.expand(function() {
             this.activate(setTimeout.bind(null, this.focus.bind(this)));
+            window.addEventListener('rocketbar-overlayopened', this);
           }.bind(this));
         } else {
           this.activate(setTimeout.bind(null, this.focus.bind(this)));
         }
+        break;
+      case 'rocketbar-overlayopened':
+        var app = AppWindowManager.getActiveApp();
+        if (app && app.titleBar) {
+          app.titleBar.collapse();
+        }
+        window.removeEventListener('rocketbar-overlayopened', this);
         break;
     }
   };

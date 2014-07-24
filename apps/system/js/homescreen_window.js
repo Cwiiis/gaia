@@ -161,6 +161,7 @@
 
   HomescreenWindow.prototype.view = function hw_view() {
     return '<div class="appWindow homescreen" id="homescreen">' +
+              '<div class="statusbar-icons-mirror"></div>' +
               '<div class="fade-overlay"></div>' +
            '</div>';
   };

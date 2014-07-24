@@ -16,7 +16,7 @@
     this._gotName = false;
     this._recentTitle = true;
     this._titleTimeout = null;
-    this.containerElement = app.element;
+    this.containerElement = app.container;
     this.render();
   };
 
@@ -33,14 +33,14 @@
   AppTitleBar.prototype.view = function at_view() {
     return '<div class="titlebar" id="' +
             this.CLASS_NAME + this.instanceID + '">' +
-             '<div class="bubble"><span>&hellip;<span></div>' +
+             '<div class="bubble"></div><span>&hellip;<span>' +
            '</div>';
   };
 
   AppTitleBar.prototype._fetchElements = function at__fetchElements() {
     this.element = this.containerElement.querySelector('.titlebar');
     this.bubble = this.element.querySelector('.bubble');
-    this.title = this.bubble.querySelector('span');
+    this.title = this.element.querySelector('span');
   };
 
   AppTitleBar.prototype.expand = function at_expand(callback) {
@@ -64,6 +64,10 @@
     safetyTimeout = setTimeout(finish, 250);
   };
 
+  AppTitleBar.prototype.isExpanded = function at_is_expanded() {
+    return this.element.classList.contains('expand');
+  };
+
   AppTitleBar.prototype.collapse = function at_collapse() {
     this.element.classList.remove('expand');
   };
@@ -76,24 +80,20 @@
       return;
     }
 
-    switch (evt.type) {
-      case 'rocketbar-overlayopened':
-        this.collapse();
-        break;
+    if (evt.type === 'click' && this.isExpanded()) {
+      window.dispatchEvent(new CustomEvent('global-search-request'));
     }
   };
 
   AppTitleBar.prototype._registerEvents = function at__registerEvents() {
-    window.addEventListener('rocketbar-overlayopened', this);
     this.app.element.addEventListener('mozbrowsermetachange', this);
     this.app.element.addEventListener('mozbrowsertitlechange', this);
     this.app.element.addEventListener('mozbrowserlocationchange', this);
     this.app.element.addEventListener('_namechanged', this);
+    this.bubble.addEventListener('click', this);
   };
 
   AppTitleBar.prototype._unregisterEvents = function at__unregisterEvents() {
-    window.removeEventListener('rocketbar-overlayopened', this);
-
     if (!this.app) {
       return;
     }
@@ -102,6 +102,11 @@
     this.app.element.removeEventListener('mozbrowsertitlechange', this);
     this.app.element.removeEventListener('mozbrowserlocationchange', this);
     this.app.element.removeEventListener('_namechanged', this);
+
+    if (this.bubble) {
+      this.bubble.removeEventListener('click', this);
+    }
+
     this.app = null;
   };
 

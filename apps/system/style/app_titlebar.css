@@ -4,22 +4,24 @@
   width: 100%;
   height: 7.4rem;
 
-  overflow: hidden;
-
   background-color: black;
-  background-image: -moz-element(#statusbar), linear-gradient(rgba(0,0,0,0.1),
+  background-image: linear-gradient(rgba(0,0,0,0.1),
                     rgba(0,0,0,0.1));
-  background-size: 100% 2.4rem, 100% 100%, 100% 100%;
-  background-repeat: no-repeat, repeat, repeat;
+  background-size: 100% 100%, 100% 100%;
+  background-repeat: repeat, repeat;
   background-position: bottom right, center center, center center;
   transition: background-color 0.5s ease, transform 0.2s ease-in;
 
   transform: translateY(-5rem);
 }
 
+.appWindow.navigation .titlebar,
 .appWindow:not(.homescreen) .titlebar.expand {
-  background-size: 0  0, 100% 100%, 100% 100%;
   transform: translateY(0);
+}
+
+.appWindow.navigation:not(.expand) .titlebar.expand {
+  transform: translateY(5rem);
 }
 
 #screen.utility-tray .appWindow .titlebar {
@@ -32,13 +34,6 @@
   left: 0.5rem;
   width: calc(40% - 1.8rem);
   height: 1.8rem;
-  overflow: hidden;
-
-  padding-left: 0.5rem;
-  font-size: 1rem;
-  line-height: 1.8rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 
   background: rgba(51, 51, 51, 0.5);
   border-radius: 1.7rem;
@@ -52,16 +47,37 @@
   opacity: 0.7;
 }
 
-.titlebar .bubble span {
-  transition: opacity 0.15s ease-in;
+.titlebar span {
+  position: absolute;
+  top: 5.28rem;
+  left: 1rem;
+  width: calc(40% - 2.8rem);
+  height: 1.8rem;
+  overflow: hidden;
+
+  font-size: 1rem;
+  line-height: 1.8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  transform-origin: center left;
+  transition: transform 0.2s ease-in, opacity 0.15s ease-in;
+
+  pointer-events: none;
 }
 
-.titlebar.expand .bubble span {
+.titlebar.expand span {
+  transform: scale(1.89, 1.89) translateY(-1rem);
+}
+
+.appWindow:not(.navigation) .titlebar.expand span {
   opacity: 0;
 }
 
 .activityWindow .titlebar .bubble,
-.homescreen .titlebar .bubble {
+.activityWindow .titlebar span,
+.homescreen .titlebar .bubble,
+.homescreen .titlebar span {
   visibility: hidden;
 }
 

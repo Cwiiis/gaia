@@ -20,6 +20,20 @@
   background-color: transparent;
 }
 
+/* appWindow statusbar icons mirror */
+
+.appWindow > .statusbar-icons-mirror {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2.4rem;
+  background-image: -moz-element(#statusbar);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  transition: opacity 0.2s;
+}
+
 /* mozbrowser iframe layout */
 
 .appWindow > iframe {
