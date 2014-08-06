@@ -84,7 +84,7 @@
             '     alt="Stop"></button>' +
             ' </div>' +
             ' <button type="button" class="menu-button"' +
-            '   alt="Menu" data-disabled="disabled"></button>' +
+            '   alt="Menu"></button>' +
             '</div>';
   };
 
@@ -120,12 +120,22 @@
   AppChrome.prototype.overflowMenuView = function an_overflowMenuView() {
     return '<div class="overflow-menu hidden">' +
            '  <div class="list">' +
+
            '    <div class="option" id="add-to-home">' +
            '      <div class="icon"></div>' +
-           '      <div class="label" data-l10n-id="add-to-home-screen">' +
+           '      <div class="label" data-l10n-id="add-to-home-screen" ' +
+           '       data-disabled="disabled">' +
            '        Add to Home Screen' +
            '      </div>' +
            '    </div>' +
+
+           '    <div class="option" id="share">' +
+           '      <div class="icon"></div>' +
+           '      <div class="label" data-l10n-id="share">' +
+           '        Share' +
+           '      </div>' +
+           '    </div>' +
+
            '  </div>' +
            '</div>';
   };
@@ -301,6 +311,11 @@
         evt.stopImmediatePropagation();
         this.onAddToHome();
         break;
+
+      case this.shareButton:
+        evt.stopImmediatePropagation();
+        this.onShare();
+        break;
     }
   };
 
@@ -401,6 +416,10 @@
 
     if (this.addToHomeButton) {
       this.addToHomeButton.removeEventListener('click', this);
+    }
+
+    if (this.shareButton) {
+      this.shareButton.removeEventListener('click', this);
     }
 
     this.reloadButton.removeEventListener('click', this);
@@ -634,15 +653,15 @@
               if (this.bookmarkButton) {
                 this.bookmarkButton.dataset.disabled = true;
               }
-              if (this.menuButton) {
-                this.menuButton.dataset.disabled = true;
+              if (this.addToHomeButton) {
+                this.addToHomeButton.dataset.disabled = true;
               }
             } else {
               if (this.bookmarkButton) {
                 delete this.bookmarkButton.dataset.disabled;
               }
-              if (this.menuButton) {
-                delete this.menuButton.dataset.disabled;
+              if (this.addToHomeButton) {
+                delete this.addToHomeButton.dataset.disabled;
               }
             }
           }.bind(this));
@@ -719,8 +738,8 @@
     });
 
     activity.onsuccess = function onsuccess() {
-      if (this.menuButton) {
-        this.menuButton.dataset.disabled = true;
+      if (this.addToHomeButton) {
+        this.addToHomeButton.dataset.disabled = true;
       }
       if (this.bookmarkButton) {
         this.bookmarkButton.dataset.disabled = true;
@@ -785,13 +804,16 @@
                                             this.overflowMenuView());
         this._overflowMenu = this.containerElement.
           querySelector('.overflow-menu');
-        this.addToHomeButton = this.containerElement.
+        this.addToHomeButton = this._overflowMenu.
           querySelector('#add-to-home');
+        this.shareButton = this._overflowMenu.
+          querySelector('#share');
 
         this._overflowMenu.addEventListener('click', this);
         this._overflowMenu.addEventListener('animationend', this);
         this._overflowMenu.addEventListener('transitionend', this);
         this.addToHomeButton.addEventListener('click', this);
+        this.shareButton.addEventListener('click', this);
       }
 
       return this._overflowMenu;
@@ -809,6 +831,29 @@
         !this.overflowMenu.classList.contains('showing')) {
       this.overflowMenu.classList.add('hiding');
     }
+  };
+
+  AppChrome.prototype.onShare = function ac_onShare() {
+    this.shareButton.dataset.disabled = true;
+
+    // Fire web activity to share URL
+    var activity = new MozActivity({
+      name: 'share',
+      data: {
+        type: 'url',
+        url: this._currentURL
+      }
+    });
+
+    activity.onsuccess = (function success() {
+      delete this.shareButton.dataset.disabled;
+    }).bind(this);
+
+    activity.onerror = (function error() {
+      delete this.shareButton.dataset.disabled;
+    }).bind(this);
+
+    this.hideOverflowMenu();
   };
 
   exports.AppChrome = AppChrome;
