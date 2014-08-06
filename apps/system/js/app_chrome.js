@@ -1,4 +1,4 @@
-/* global ModalDialog, MozActivity */
+/* global ModalDialog, MozActivity, BookmarksDatabase */
 
 'use strict';
 
@@ -358,8 +358,8 @@
     this.app.element.addEventListener('_loading', this);
     this.app.element.addEventListener('_loaded', this);
     this.app.element.addEventListener('_namechanged', this);
-    this.app.element.addEventListener('_opened', this);
     if (!this.useCombinedChrome()) {
+      this.app.element.addEventListener('_opened', this);
       this.app.element.addEventListener('_closing', this);
       this.app.element.addEventListener('_withkeyboard', this);
       this.app.element.addEventListener('_withoutkeyboard', this);
@@ -421,8 +421,8 @@
     this.app.element.removeEventListener('_loading', this);
     this.app.element.removeEventListener('_loaded', this);
     this.app.element.removeEventListener('_namechanged', this);
-    this.app.element.removeEventListener('_opened', this);
     if (!this.useCombinedChrome()) {
+      this.app.element.removeEventListener('_opened', this);
       this.app.element.removeEventListener('_closing', this);
       this.app.element.removeEventListener('_withkeyboard', this);
       this.app.element.removeEventListener('_withoutkeyboard', this);
@@ -508,27 +508,7 @@
 
   AppChrome.prototype.handleOpened =
     function ac_handleOpened() {
-      if (this.navigation) {
-        this.toggleButtonBar(BUTTONBAR_INITIAL_OPEN_TIMEOUT);
-      }
-
-      var dataset = this.app.config;
-      if (dataset.originURL || dataset.searchURL) {
-        if (this.bookmarkButton) {
-          delete this.bookmarkButton.dataset.disabled;
-        }
-        if (this.menuButton) {
-          delete this.menuButton.dataset.disabled;
-        }
-        return;
-      }
-
-      if (this.bookmarkButton) {
-        this.bookmarkButton.dataset.disabled = true;
-      }
-      if (this.menuButton) {
-        this.menuButton.dataset.disabled = true;
-      }
+      this.toggleButtonBar(BUTTONBAR_INITIAL_OPEN_TIMEOUT);
     };
 
   AppChrome.prototype.handleTitleChanged = function(evt) {
@@ -643,6 +623,30 @@
           this.backButton.dataset.disabled = true;
         }
       }.bind(this));
+
+      // Enable/disable the bookmark option
+      if (this.app.config.chrome &&
+          (this.app.config.chrome.navigation ||
+           this.app.config.chrome.scrollable)) {
+        BookmarksDatabase.get(this._currentURL).then(
+          function(result) {
+            if (result) {
+              if (this.bookmarkButton) {
+                this.bookmarkButton.dataset.disabled = true;
+              }
+              if (this.menuButton) {
+                this.menuButton.dataset.disabled = true;
+              }
+            } else {
+              if (this.bookmarkButton) {
+                delete this.bookmarkButton.dataset.disabled;
+              }
+              if (this.menuButton) {
+                delete this.menuButton.dataset.disabled;
+              }
+            }
+          }.bind(this));
+      }
     };
 
   AppChrome.prototype.handleLoadStart = function ac_handleLoadStart(evt) {
@@ -686,19 +690,20 @@
     return this.element.classList.contains('maximized');
   };
 
+  AppChrome.prototype.isSearch = function ac_isSearch() {
+    var dataset = this.app.config;
+    return dataset.searchName && dataset.searchURL &&
+      this.title.textContent.startsWith(dataset.searchName);
+  };
+
   AppChrome.prototype.addBookmark = function ac_addBookmark() {
     var dataset = this.app.config;
-    if (!dataset.originURL && !dataset.searchURL) {
-      return;
-    }
 
-    var name, url;
-    if (dataset.originURL) {
-      name = dataset.originName;
-      url = dataset.originURL;
-    } else {
+    var name, url = this._currentURL;
+    if (this.isSearch()) {
       name = dataset.searchName;
-      url = dataset.searchURL;
+    } else {
+      name = this.title.textContent;
     }
 
     var activity = new MozActivity({
@@ -714,20 +719,11 @@
     });
 
     activity.onsuccess = function onsuccess() {
-      if (dataset.originURL) {
-        delete dataset.originURL;
-      } else {
-        delete dataset.searchURL;
+      if (this.menuButton) {
+        this.menuButton.dataset.disabled = true;
       }
-
-      if (!dataset.originURL &&
-          !dataset.searchURL) {
-        if (this.menuButton) {
-          this.menuButton.dataset.disabled = true;
-        }
-        if (this.bookmarkButton) {
-          this.bookmarkButton.dataset.disabled = true;
-        }
+      if (this.bookmarkButton) {
+        this.bookmarkButton.dataset.disabled = true;
       }
     }.bind(this);
   };
@@ -751,14 +747,11 @@
       options: []
     };
 
-    var dataset = this.app.config;
-
-    if (dataset.originURL) {
-      data.options.push({ id: 'origin', text: dataset.originName });
-    }
-
-    if (dataset.searchURL) {
+    if (this.isSearch()) {
+      var dataset = this.app.config;
       data.options.push({ id: 'search', text: dataset.searchName });
+    } else {
+      data.options.push({ id: 'origin', text: this.title.textContent });
     }
 
     ModalDialog.selectOne(data, selected);
