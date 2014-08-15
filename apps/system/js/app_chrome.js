@@ -1,7 +1,8 @@
+/* global applications */
+/* global BookmarksDatabase */
+/* global LazyLoader */
 /* global ModalDialog */
 /* global MozActivity */
-/* global BookmarksDatabase */
-/* global applications */
 /* global SettingsListener */
 
 'use strict';
@@ -109,32 +110,22 @@
   };
 
   AppChrome.prototype.overflowMenuView = function an_overflowMenuView() {
-    return '<div class="overflow-menu hidden">' +
-           '  <div class="list">' +
+    return '<gaia-overflow-menu>' +
 
-           '    <div class="option" id="new-window">' +
-           '      <div class="icon"></div>' +
-           '      <div class="label" data-l10n-id="new-window">' +
-           '        New Window' +
-           '      </div>' +
-           '    </div>' +
+           '  <gaia-overflow-menu-option data-l10n-id="new-window">' +
+           '    New Window' +
+           '  </gaia-overflow-menu-option>' +
 
-           '    <div class="option" id="add-to-home" data-disabled="true">' +
-           '      <div class="icon"></div>' +
-           '      <div class="label" data-l10n-id="add-to-home-screen">' +
-           '        Add to Home Screen' +
-           '      </div>' +
-           '    </div>' +
+           '  <gaia-overflow-menu-option data-l10n-id="add-to-home-screen" ' +
+           '   data-hidden="true">' +
+           '    Add to Home Screen' +
+           '  </gaia-overflow-menu-option>' +
 
-           '    <div class="option" id="share">' +
-           '      <div class="icon"></div>' +
-           '      <div class="label" data-l10n-id="share">' +
-           '        Share' +
-           '      </div>' +
-           '    </div>' +
+           '  <gaia-overflow-menu-option data-l10n-id="share">' +
+           '      Share' +
+           '  </gaia-overflow-menu-option>' +
 
-           '  </div>' +
-           '</div>';
+           '</gaia-overflow-menu>';
   };
 
   AppChrome.prototype._fetchElements = function ac__fetchElements() {
@@ -205,14 +196,6 @@
 
       case '_namechanged':
         this.handleNameChanged(evt);
-        break;
-
-      case 'transitionend':
-        this.handleTransitionEnd(evt);
-        break;
-
-      case 'animationend':
-        this.handleAnimationEnd(evt);
         break;
     }
   };
@@ -285,6 +268,11 @@
 
   AppChrome.prototype._registerEvents = function ac__registerEvents() {
     if (this.useCombinedChrome()) {
+      LazyLoader.load('shared/js/bookmarks_database.js', function() {
+        this.updateAddToHomeButton();
+      }.bind(this));
+      LazyLoader.load('shared/elements/gaia_overflow_menu/script.js');
+
       this.stopButton.addEventListener('click', this);
       this.reloadButton.addEventListener('click', this);
       this.backButton.addEventListener('click', this);
@@ -451,20 +439,20 @@
 
   AppChrome.prototype.updateAddToHomeButton =
     function ac_updateAddToHomeButton() {
-      if (!this.addToHomeButton) {
+      if (!this.addToHomeButton || !BookmarksDatabase) {
         return;
       }
 
       // Enable/disable the bookmark option
       BookmarksDatabase.get(this._currentURL).then(function resolve(result) {
         if (result) {
-          this.addToHomeButton.dataset.disabled = true;
+          this.addToHomeButton.dataset.hidden = true;
         } else {
-          delete this.addToHomeButton.dataset.disabled;
+          delete this.addToHomeButton.dataset.hidden;
         }
       }.bind(this),
       function reject() {
-        this.addToHomeButton.dataset.disabled = true;
+        this.addToHomeButton.dataset.hidden = true;
       }.bind(this));
     };
 
@@ -564,7 +552,7 @@
 
     if (this.addToHomeButton) {
       activity.onsuccess = function onsuccess() {
-        this.addToHomeButton.dataset.disabled = true;
+        this.addToHomeButton.dataset.hidden = true;
       }.bind(this);
     }
   };
@@ -605,39 +593,22 @@
     this.hideOverflowMenu();
   };
 
-  AppChrome.prototype.handleAnimationEnd =
-    function ac_handleAnimationEnd(evt) {
-      this.overflowMenu.classList.remove('showing');
-    };
-
-  AppChrome.prototype.handleTransitionEnd =
-    function ac_handleTransitionEnd(evt) {
-      if (evt.target === this.overflowMenu) {
-        if (this.overflowMenu.classList.contains('hiding')) {
-          this.overflowMenu.classList.remove('hiding');
-          this.overflowMenu.classList.add('hidden');
-        }
-      }
-    };
-
   AppChrome.prototype.__defineGetter__('overflowMenu',
     // Instantiate the overflow menu when it's needed
     function ac_getOverflowMenu() {
-      if (!this._overflowMenu && this.useCombinedChrome()) {
+      if (!this._overflowMenu && this.useCombinedChrome() &&
+          window.GaiaOverflowMenu) {
         this.app.element.insertAdjacentHTML('afterbegin',
                                             this.overflowMenuView());
         this._overflowMenu = this.containerElement.
-          querySelector('.overflow-menu');
+          querySelector('gaia-overflow-menu');
         this.newWindowButton = this._overflowMenu.
-          querySelector('#new-window');
+          querySelector('[data-l10n-id="new-window"]');
         this.addToHomeButton = this._overflowMenu.
-          querySelector('#add-to-home');
+          querySelector('[data-l10n-id="add-to-home-screen"]');
         this.shareButton = this._overflowMenu.
-          querySelector('#share');
+          querySelector('[data-l10n-id="share"]');
 
-        this._overflowMenu.addEventListener('click', this);
-        this._overflowMenu.addEventListener('animationend', this);
-        this._overflowMenu.addEventListener('transitionend', this);
         this.newWindowButton.addEventListener('click', this);
         this.addToHomeButton.addEventListener('click', this);
         this.shareButton.addEventListener('click', this);
@@ -649,17 +620,11 @@
     });
 
   AppChrome.prototype.showOverflowMenu = function ac_showOverflowMenu() {
-    if (this.overflowMenu.classList.contains('hidden')) {
-      this.overflowMenu.classList.remove('hidden');
-      this.overflowMenu.classList.add('showing');
-    }
+    this.overflowMenu.show();
   };
 
   AppChrome.prototype.hideOverflowMenu = function ac_hideOverflowMenu() {
-    if (!this.overflowMenu.classList.contains('hidden') &&
-        !this.overflowMenu.classList.contains('showing')) {
-      this.overflowMenu.classList.add('hiding');
-    }
+    this.overflowMenu.hide();
   };
 
   AppChrome.prototype.onShare = function ac_onShare() {
