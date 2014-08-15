@@ -60,6 +60,7 @@ navigator.mozL10n.ready(function localized() {
 
 var Startup = {
   _lazyLoadScripts: [
+    '/shared/elements/gaia_overflow_menu/script.js',
     '/shared/js/settings_listener.js',
     '/shared/js/sim_picker.js',
     '/shared/js/mime_mapper.js',

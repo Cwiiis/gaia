@@ -9,6 +9,12 @@ html, body {
 }
 
 
+/* No icons for menu items yet, so make sure options are aligned correctly */
+gaia-overflow-menu-option {
+  text-align: left;
+  padding-left: 1.5rem ! important;
+}
+
 /*
   Override BB. Some CSS tweaks for having a better confirm readability
 */

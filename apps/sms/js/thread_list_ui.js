@@ -423,9 +423,6 @@ var ThreadListUI = {
         method: function oSettings() {
           ActivityPicker.openSettings();
         }
-      },{ // Last item is the Cancel button
-        l10nId: 'cancel',
-        incomplete: true
       }]
     };
 

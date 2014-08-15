@@ -35,7 +35,7 @@
         params: ['Optional params'],
 
         // Optional boolean flag to tell the
-        // menu button handlers that this option
+        // menu option handlers that this option
         // will not execute the "complete" callback.
         // Defaults to "false"
 
@@ -76,12 +76,9 @@ var OptionMenu = function(options) {
   // Retrieve items to be rendered
   var items = options.items;
   // Create the structure
-  this.form = document.createElement('form');
-  this.form.dataset.type = options.type || 'action';
-  this.form.setAttribute('role', 'dialog');
-  this.form.tabIndex = -1;
+  this.menu = document.createElement('gaia-overflow-menu');
 
-  var classList = this.form.classList;
+  var classList = this.menu.classList;
 
   if (options.classes) {
     classList.add.apply(classList, options.classes);
@@ -89,66 +86,43 @@ var OptionMenu = function(options) {
 
   // We append title if needed
   if (options.header) {
-    var header = document.createElement('header');
-
-    if (typeof options.header === 'string') {
-      header.textContent = options.header || '';
-    } else if (options.header.l10nId) {
-      header.setAttribute('data-l10n-id', options.header.l10nId);
-    } else {
-      header.appendChild(options.header);
-    }
-
-    this.form.appendChild(header);
+    // TODO
   }
+
   if (options.section) {
-    var section = document.createElement('section');
-
-    if (typeof options.section === 'string') {
-      section.textContent = options.section || '';
-    } else {
-      section.appendChild(options.section);
-    }
-
-    this.form.appendChild(section);
+    // TODO
   }
 
-  // We append a menu with the list of options
-  var menu = document.createElement('menu');
-  menu.dataset.items = items.length;
-
-  // For each option, we append the item and listener
+  // For each option, we append the option and listener
   items.forEach(function renderOption(item) {
-    var button = document.createElement('button');
+    var option = document.createElement('gaia-overflow-menu-option');
     if (item.l10nId) {
-      navigator.mozL10n.localize(button, item.l10nId, item.l10nArgs);
+      navigator.mozL10n.localize(option, item.l10nId, item.l10nArgs);
     } else if (item.name && item.name.length) {
-      button.textContent = item.name || '';
+      option.textContent = item.name || '';
     } else {
       // no l10n or name, just empty item, don't add to the menu
       return;
     }
-    menu.appendChild(button);
-    // Add a mapping from the button object
+    this.menu.appendChild(option);
+
+    // Add a mapping from the option object
     // directly to its options item.
     item.incomplete = item.incomplete || false;
 
-    handlers.set(button, item);
-  });
+    handlers.set(option, item);
+  }.bind(this));
 
-  this.form.addEventListener('submit', function(event) {
-    event.preventDefault();
-  });
-
-  menu.addEventListener('click', function(event) {
+  this.menu.addEventListener('click', function(event) {
     var action = handlers.get(event.target);
     var method;
 
+    // TODO: Custom cancel?
     // Delegate operation to target method. This allows
     // for a custom "Cancel" to be provided by calling program.
     //
     // Further operations should only be processed if
-    // an actual button was pressed.
+    // an actual option was pressed.
     if (typeof action !== 'undefined') {
       method = action.method || function() {};
 
@@ -162,20 +136,25 @@ var OptionMenu = function(options) {
       }
     }
   }.bind(this));
-  // Appending the action menu to the form
-  this.form.appendChild(menu);
+
+  // Destroy on hide
+  this.menu.addEventListener('transitionend', function() {
+    if (this.menu.classList.contains('hidden')) {
+      document.body.removeChild(this.menu);
+    }
+  }.bind(this));
 };
 
 // We prototype functions to show/hide the UI of action-menu
 OptionMenu.prototype.show = function() {
   // We translate and append the element to body
-  navigator.mozL10n.translate(this.form);
-  document.body.appendChild(this.form);
-  // Focus form to blur anything triggered keyboard
-  this.form.focus();
+  navigator.mozL10n.translate(this.menu);
+  document.body.appendChild(this.menu);
+  this.menu.show();
+  // Focus menu to blur anything triggered keyboard
+  this.menu.focus();
 };
 
 OptionMenu.prototype.hide = function() {
-  // We remove the element to body
-  document.body.removeChild(this.form);
+  this.menu.hide();
 };

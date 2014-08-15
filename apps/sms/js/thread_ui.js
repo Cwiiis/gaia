@@ -1175,12 +1175,6 @@ var ThreadUI = {
               this.discardDraft();
               resolve();
             }.bind(this)
-          },
-          {
-            l10nId: 'cancel',
-            method: function onCancel() {
-              reject();
-            }
           }
         ]
       };
@@ -1739,12 +1733,6 @@ var ThreadUI = {
       });
     }
 
-    // Last item is the Cancel button
-    params.items.push({
-      l10nId: 'cancel',
-      incomplete: true
-    });
-
     new OptionMenu(params).show();
   },
 
@@ -2053,10 +2041,6 @@ var ThreadUI = {
             params: [messageId]
           });
         }
-
-        params.items.push({
-          l10nId: 'cancel'
-        });
 
         var options = new OptionMenu(params);
         options.show();
@@ -2795,12 +2779,6 @@ var ThreadUI = {
         }
       );
     }
-
-    // All activations will see a "Cancel" option
-    params.items.push({
-      l10nId: 'cancel',
-      incomplete: true
-    });
 
     new OptionMenu(params).show();
   },
