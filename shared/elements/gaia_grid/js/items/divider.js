@@ -37,9 +37,8 @@
     /**
      * Renders the icon to the grid component.
      * @param {Object} coordinates Grid coordinates to render to.
-     * @param {Number} index The index of the items list of this item.
      */
-    render: function(coordinates, index) {
+    render: function(coordinates) {
       // Generate the content if we need to
       if (!this.element) {
         // Divider is a <section> and the rest of items are <div> containers
@@ -53,10 +52,9 @@
         this.grid.element.appendChild(divider);
       }
 
-      var y = this.grid.layout.offsetY;
+      var y = coordinates[1];
       this.element.style.transform = 'translate(0 ,' + y + 'px)';
 
-      this.detail.index = index;
       this.y = y;
     },
 

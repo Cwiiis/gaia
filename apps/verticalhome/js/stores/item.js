@@ -22,6 +22,7 @@
     if (!order || !order.length) {
       return entries;
     }
+    console.log('Sorting');
 
     var newEntries = [];
     function isEqual(lookFor, compareWith) {
@@ -333,6 +334,12 @@
           } else if (thisItem.type === 'collection') {
             var collection = new GaiaGrid.Collection(thisItem);
             addIfUnique.call(this, collection);
+          } else if (thisItem.type === 'group') {
+            var group = new GaiaGrid.Group(thisItem);
+            this._allItems.push(group);
+          } else if (thisItem.type === 'groupend') {
+            var groupEnd = new GaiaGrid.GroupEnd(thisItem);
+            this._allItems.push(groupEnd);
           }
         }
 

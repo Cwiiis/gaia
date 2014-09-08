@@ -57,11 +57,8 @@
     /**
      * Renders a transparent placeholder.
      * @param {Array} coordinates Grid coordinates to render to.
-     * @param {Number} index The index of the items list of this item.
      */
-    render: function(coordinates, index) {
-      this.scale = this.grid.layout.percent;
-
+    render: function(coordinates) {
       // Generate an element if we need to
       if (!this.element) {
         var tile = document.createElement('div');
@@ -71,11 +68,10 @@
         this.grid.element.appendChild(tile);
       }
 
-      var x = this.x = coordinates[0] * this.grid.layout.gridItemWidth;
-      var y = this.y = this.grid.layout.offsetY;
-      this.setPosition(index);
+      this.x = coordinates[0];
+      this.y = coordinates[1];
 
-      this.transform(x, y, this.grid.layout.percent);
+      this.transform(this.x, this.y, this.grid.layout.percent);
     },
 
     remove: function() {

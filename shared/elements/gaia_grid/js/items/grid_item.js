@@ -259,14 +259,15 @@
         style.height = this.grid.layout.gridItemHeight + 'px';
         // icon size + padding for shadows implemented in the icon renderer
         var backgroundHeight =
-          ((this.grid.layout.gridIconSize * (1 / this.scale)) +
+          ((this.grid.layout.gridIconSize * (1 / this.grid.layout.percent)) +
           GridIconRenderer.prototype.unscaledCanvasPadding);
+
         if (this.grid.layout.gridItemHeight > backgroundHeight) {
           style.backgroundSize = backgroundHeight + 'px';
         } else {
           style.backgroundSize = style.height;
         }
-      }
+     }
 
       if (isCachedIcon) {
         var url = URL.createObjectURL(blob);
@@ -482,10 +483,10 @@
     /**
      * Renders the icon to the container.
      * @param {Array} coordinates Grid coordinates to render to.
-     * @param {Number} index The index of the items list of this item.
+     * @param {Boolean} forceRender Whether to ignore this.noTransform.
      */
-    render: function(coordinates, index) {
-      this.scale = this.grid.layout.percent;
+    render: function(coordinates, forceRender) {
+      var scale = this.grid.layout.percent * this.scale;
 
       // Generate an element if we need to
       if (!this.element) {
@@ -499,7 +500,7 @@
         // to this container via CSS without touching JS.
         var nameContainerEl = document.createElement('p');
         nameContainerEl.style.marginTop = ((this.grid.layout.gridIconSize *
-          (1 / this.scale)) +
+          (1 / this.grid.layout.percent)) +
           (GridIconRenderer.prototype.unscaledCanvasPadding / 2)) + 'px';
         tile.appendChild(nameContainerEl);
 
@@ -520,18 +521,17 @@
         this.grid.element.appendChild(tile);
       }
 
-      var x = coordinates[0] * this.grid.layout.gridItemWidth;
-      var y = this.grid.layout.offsetY;
-      this.setPosition(index);
-      this.x = x;
-      this.y = y;
-
       // Avoid rendering the icon during a drag to prevent jumpiness
-      if (this.noTransform) {
-        return;
+      if (!forceRender) {
+        this.x = coordinates[0];
+        this.y = coordinates[1];
+
+        if (this.noTransform) {
+          return;
+        }
       }
 
-      this.transform(x, y, this.grid.layout.percent);
+      this.transform(coordinates[0], coordinates[1], scale);
     },
 
     /**
@@ -542,6 +542,19 @@
       element = element || this.element;
       element.style.transform =
         'translate(' + x + 'px,' + y + 'px) scale(' + scale + ')';
+    },
+
+    /**
+     * Set whether the item is being dragged.
+     */
+    setActive: function(active) {
+      if (active) {
+        this.element.classList.add('active');
+        this.noTransform = true;
+      } else {
+        this.element.classList.remove('active');
+        delete this.noTransform;
+      }
     },
 
     /**

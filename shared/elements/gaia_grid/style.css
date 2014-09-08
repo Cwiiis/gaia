@@ -47,7 +47,9 @@
   z-index: 3;
 }
 
-.dragging .icon {
+.dragging .icon,
+.collapsing .icon,
+.expanding .icon {
   will-change: transform;
 }
 
@@ -83,6 +85,7 @@
   width: calc(100% - 0.4rem);
   box-sizing: border-box;
   vertical-align: top;
+  transition: opacity 0.5s;
 }
 
 [cols="4"] .icon .title {
@@ -90,6 +93,14 @@
   font-size: calc(1.2rem * 1.333);
   margin-top: 0.5rem;
   line-height: 1.94rem;
+}
+
+.icon.collapsed {
+  pointer-events: none;
+}
+
+.icon.collapsed .title {
+  opacity: 0;
 }
 
 .divider {
@@ -110,13 +121,33 @@
   height: 0.2rem;
 }
 
+.grouping .divider {
+  margin: 2.3rem 0 3.5rem 0;
+  width: 100%;
+}
+
+.grouping .divider span {
+  background: none;
+  border-top: 0.1rem solid #4d4d4d;
+  box-sizing: border-box;
+}
+
+.divider:last-of-type {
+  visibility: hidden;
+}
+
+.edit-mode .divider:last-of-type {
+  visibility: visible;
+}
+
 .dragging .icon.active {
-  z-index: 4;
+  z-index: 5;
   opacity: 0.65;
 }
 
 .dragging .divider,
-.dragging .icon:not(.active),
+.icon:not(.active),
+.group:not(.active),
 .dropped {
   transition: transform 0.5s, opacity 0.5s;
 }
@@ -138,10 +169,8 @@
   padding: 0.5rem;
 }
 
-.icon .remove {
-  display: none;
-}
-
+.icon .remove,
+.icon.collapsed .remove,
 .edit-mode .icon.active .remove {
   display: none;
 }
@@ -157,4 +186,91 @@
 
 #confirm-message {
   z-index: 100;
+}
+
+.group {
+  position: absolute;
+  width: 100%;
+  border: 0.6rem solid transparent;
+  box-sizing: border-box;
+  z-index: 2;
+}
+
+.dragging .group.active {
+  z-index: 4;
+}
+
+.group span {
+  display: block;
+  background-color: rgba(255, 255, 255, 0.2);
+  transition: background-color 0.5s;
+  text-align: center;
+  pointer-events: none;
+
+  /* XXX Need assets for drag-handles/collapse arrow */
+  font-weight: bold;
+  color: #fff;
+}
+
+.collapsing .group,
+.expanding .group {
+  will-change: opacity;
+}
+
+.group.active span {
+  background-color: rgba(27, 185, 225, 0.5);
+}
+
+.group .top {
+  border-radius: 1.5rem 1.5rem 0 0;
+  height: 1.5rem;
+  font-size: 0;
+}
+
+.edit-mode .group:not(.collapsed) .top {
+  font-size: 0;
+}
+
+.edit-mode .group span {
+  font-size: 1.5rem;
+}
+
+.group .middle {
+  color: #525252;
+}
+.group .middle:not(.collapsing):not(.expanding) {
+  /* Ideally we'd animate height, but we can't avoid janky animation when
+   * doing so.
+   */
+  /*transition: height 0.5s;*/
+}
+
+.group .bottom {
+  border-radius: 0 0 1.5rem 1.5rem;
+  height: 1.5rem;
+  font-size: 1.5rem;
+}
+
+.group-end {
+  position: absolute;
+  width: 100%;
+
+  /* Height of .group .bottom * 2 to make it easier to press */
+  height: calc(1.5rem * 2);
+
+  /* group-end has no content, so this just ensures that input on it takes
+   * priority over things that may obscure it.
+   */
+  z-index: 6;
+}
+
+.new-group {
+  transition: transform 0.5s, opacity 0.5s;
+  position: absolute;
+  width: 100%;
+}
+
+.new-group .title {
+  color: #525252;
+  padding-top: 1.5rem;
 }

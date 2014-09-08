@@ -74,10 +74,6 @@ gaia-grid {
 }
 
 .divider:last-of-type {
-  visibility: hidden;
   padding-bottom: 1.4rem;
 }
 
-.edit-mode .divider:last-of-type {
-  visibility: visible;
-}

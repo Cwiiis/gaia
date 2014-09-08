@@ -34,6 +34,11 @@
       this.zoom = new GridZoom(this);
     }
 
+    if (config.features.group) {
+      this.enableGrouping = true;
+      config.element.classList.add('grouping');
+    }
+
     this.layout = new GridLayout(this);
 
     // Set columns if we have a 'cols' attribute
@@ -107,30 +112,62 @@
       if (!isNaN(parseFloat(insertTo)) && isFinite(insertTo)) {
         this.items.splice(insertTo, 0, item);
       } else {
+        // If the last item is a group-end, we need to check if there are
+        // placeholders before the group-start, or we end up with a half-empty
+        // row before the group.
+        if (this.items.length >= 3 &&
+            (this.items[this.items.length - 1].detail.type === 'groupend')) {
+          var idx = this.items.length - 3;
+          for (; this.items[idx + 1].detail.type !== 'group'; idx--);
+          if (idx >= 0 && this.items[idx].detail.type === 'placeholder') {
+            this.items.splice(idx, 0, item);
+            return;
+          }
+        }
         this.items.push(item);
       }
     },
 
     /**
-     * Finds nearest item by and returns an index.
+     * Finds nearest item by and returns an index, or null if an item isn't
+     * found.
      * @param {Number} x relative to the screen
      * @param {Number} y relative to the screen
+     * @param {Boolean} excludeGroups Whether to exclude grouped icons
      */
-    getNearestItemIndex: function(x, y) {
-      var leastDistance;
-      var foundIndex;
+    getNearestItemIndex: function(x, y, excludeGroups) {
+      var foundIndex = null;
+      var inGroup = false;
+      var leastDistance = null;
       for (var i = 0, iLen = this.items.length; i < iLen; i++) {
         var item = this.items[i];
+
+        if (excludeGroups && item.detail.type === 'group') {
+          inGroup = true;
+        }
+        if (inGroup && item.detail.type === 'groupend') {
+          inGroup = false;
+        }
+
+        // Do not consider items in groups if specified.
+        if (inGroup && excludeGroups) {
+          continue;
+        }
 
         // Do not consider dividers for dragdrop.
         if (!item.isDraggable()) {
           continue;
         }
 
+        // Do not consider collapsed items.
+        if (item.element.classList.contains('collapsed')) {
+          continue;
+        }
+
         var distance = Math.sqrt(
           (x - item.x) * (x - item.x) +
           (y - item.y) * (y - item.y));
-        if (!leastDistance || distance < leastDistance) {
+        if (leastDistance === null || distance < leastDistance) {
           leastDistance = distance;
           foundIndex = i;
         }
@@ -204,6 +241,24 @@
       }
     },
 
+    findItemFromElement: function(element) {
+      var identifier = element.dataset.identifier;
+      var icon = this.icons[identifier];
+
+      // If the element didn't have an identifier, try to search for it
+      // manually.
+      if (!icon) {
+        for (var i = 0; i < this.items.length; i++) {
+          if (this.items[i].element == element) {
+            icon = this.items[i];
+            break;
+          }
+        }
+      }
+
+      return icon;
+    },
+
     /**
      * Launches an app.
      */
@@ -219,48 +274,60 @@
       }
       var identifier = container.dataset.identifier;
       var icon = this.icons[identifier];
+
       var inEditMode = this.dragdrop && this.dragdrop.inEditMode;
 
-      if (!icon) {
-        if (e.target.classList.contains('placeholder') && inEditMode) {
-          // Exit from edit mode when user clicks an empty space
-          window.dispatchEvent(new CustomEvent('hashchange'));
-        }
+      // Exit from edit mode when user clicks an empty space
+      if (inEditMode && e.target.classList.contains('placeholder')) {
+        window.dispatchEvent(new CustomEvent('hashchange'));
         return;
       }
 
-      // We do not allow users to launch icons in edit mode
-      if (action === 'launch' && inEditMode) {
-        if (!icon.isEditable()) {
-          return;
-        }
-        // Editing a bookmark in edit mode
-        action = 'edit';
-      } else {
-        // Add a 'launching' class to the icon to style it with CSS.
-        icon.element.classList.add('launching');
-
-        // XXX: We can't have nice things. Remove the launching class after an
-        // arbitrary time to restore the state. We want the icon to return
-        // to it's original state after launching the app, but visibilitychange
-        // will not work because activities do not fire it.
-        var returnTimeout = 500;
-        setTimeout(function stateReturn() {
-          if (icon.element) {
-            icon.element.classList.remove('launching');
-          }
-        }, returnTimeout);
+      var icon = this.findItemFromElement(container);
+      if (!icon) {
+        return;
       }
 
-      icon[action]();
+      if (action === 'launch') {
+        // We do not allow users to launch icons in edit mode
+        if (inEditMode && e.target.classList.contains('icon') &&
+            !e.target.classList.contains('new-group')) { // TODO: Make new-group its own item
+          // Check if we're trying to edit a bookmark
+          if (!(icon.detail.type === 'bookmark' && icon.isEditable())) {
+            return;
+          }
+          action = 'edit';
+        } else {
+          // Add a 'launching' class to the icon to style it with CSS.
+          icon.element.classList.add('launching');
+
+          // XXX: We can't have nice things. Remove the launching class after an
+          // arbitrary time to restore the state. We want the icon to return
+          // to it's original state after launching the app, but visibilitychange
+          // will not work because activities do not fire it.
+          var returnTimeout = 500;
+          setTimeout(function stateReturn() {
+            if (icon.element) {
+              icon.element.classList.remove('launching');
+            }
+          }, returnTimeout);
+        }
+      }
+
+      if (icon[action]) {
+        icon[action]();
+      }
     },
 
     /**
-     * Scrubs the list of items, removing empty sections.
+     * Scrubs the list of items, removing empty sections and groups.
      */
     cleanItems: function(skipDivider) {
       var appCount = 0;
       var toRemove = [];
+      var inEditMode = this.dragdrop && this.dragdrop.inEditMode;
+      var groupStart = null;
+      var groupAppCount = 0;
 
       this.items.forEach(function(item, idx) {
         if (item instanceof GaiaGrid.Divider) {
@@ -268,8 +335,22 @@
             toRemove.push(idx);
           }
           appCount = 0;
+        } else if (item.detail.type === 'group') {
+          groupStart = idx;
+          groupAppCount = 0;
+        } else if (item.detail.type === 'groupend') {
+          if (groupAppCount === 0 && !inEditMode) {
+            toRemove.push(groupStart);
+            toRemove.push(idx);
+          }
+          groupStart = null;
+        } else if (!inEditMode && item.detail.type === 'newgroup') {
+          toRemove.push(idx);
         } else {
           appCount++;
+          if (groupStart != null) {
+            groupAppCount++;
+          }
         }
       }, this);
 
@@ -284,15 +365,23 @@
       if (skipDivider) {
         return;
       }
+
+      // Make sure that the last items are divider(,new-group) - the latter
+      // only if grouping is enabled.
       var lastItem = this.items[this.items.length - 1];
-      if (!(lastItem instanceof GaiaGrid.Divider)) {
-        this.items.push(new GaiaGrid.Divider());
+      if (!lastItem || lastItem.detail.type !== 'newgroup') {
+        if (!lastItem || lastItem.detail.type !== 'divider') {
+          this.items.push(new GaiaGrid.Divider());
+        }
+        if (inEditMode && this.enableGrouping) {
+          this.items.push(new GaiaGrid.NewGroup());
+        }
       }
 
       // In dragdrop also append a row of placeholders.
       // These placeholders are used for drop detection as we ignore dividers
       // and will create a new group when an icon is dropped on them.
-      if (this.dragdrop && this.dragdrop.inEditMode) {
+      if (inEditMode && !this.enableGrouping) {
         var coords = [0, lastItem.y + 2];
         this.createPlaceholders(coords, this.items.length, this.layout.cols,
           true);
@@ -356,14 +445,15 @@
     createPlaceholders: function(coordinates, idx, count, createsGroup) {
       for (var i = 0; i < count; i++) {
         var itemCoords = [
-          coordinates[0] + i,
-          coordinates[1]
+          (coordinates[0] + i) * this.layout.gridItemWidth,
+          this.layout.offsetY
         ];
 
         var item = new GaiaGrid.Placeholder();
         item.createsGroupOnDrop = createsGroup;
         this.items.splice(idx + i, 0, item);
-        item.render(itemCoords, idx + i);
+        item.setPosition(idx + i);
+        item.render(itemCoords);
       }
     },
 
@@ -375,6 +465,8 @@
      *  - from {Integer} The index to start rendering from.
      *  - skipDivider {Boolean} Whether or not to skip the divider
      *  - rerender {Boolean} Whether we should clean elements and re-render.
+     *  - normalizeGroups {Boolean} Whether or not to shift icons to fill gaps
+     *                              before groups.
      */
     render: function(options) {
       var self = this;
@@ -382,6 +474,16 @@
 
       this.removeAllPlaceholders();
       this.cleanItems(options.skipDivider);
+
+      var printItems = function() {
+        console.log(this.items.length + ' items:');
+        for (var i = 0; i < this.items.length; i++) {
+          console.log('Item ' + i + ' (' + Math.round(this.items[i].x) + ', ' + Math.round(this.items[i].y) + '): ' + this.items[i].detail.type);
+        }
+      }.bind(this);
+
+      console.log('Before render:');
+      printItems();
 
       // Start rendering from one before the drop target. If not,
       // we may drop over the divider and miss rendering an icon.
@@ -420,6 +522,7 @@
       this.element.addEventListener('cached-icon-rendered',
                                      onCachedIconRendered);
 
+      var lastItem, inGroup;
       for (var idx = 0; idx <= to; idx++) {
         var item = this.items[idx];
 
@@ -429,13 +532,40 @@
           item.element = null;
         }
 
+        if (item.detail.type === 'group') {
+          inGroup = true;
+        } else if (item.detail.type === 'groupend') {
+          inGroup = false;
+        }
+
         // If the item would go over the boundary before rendering,
         // step the y-axis.
-        if (x > 0 && item.gridWidth > 1 &&
+        if ((x > 0 || (lastItem && lastItem.detail.type === 'group' &&
+                       lastItem.size < lastItem.maxSize)) &&
+            item.gridWidth > 1 &&
             x + item.gridWidth >= this.layout.cols) {
+
+          // If this is a group causing the column-break, and the option is
+          // specified, try to fill the space with items beyond the group-end,
+          // if there are any.
+          if (item.detail.type === 'group' && options.normalizeGroups) {
+            var endIdx;
+            for (endIdx = idx + 1;
+                 endIdx < this.items.length &&
+                 this.items[endIdx].detail.type !== 'groupend';
+                 endIdx++);
+            endIdx++;
+            if (endIdx < this.items.length &&
+                this.items[endIdx].gridWidth === 1) {
+              this.items.splice(idx, 0, this.items.splice(endIdx, 1)[0]);
+              idx --;
+              continue;
+            }
+          }
 
           // Insert placeholders to fill remaining space
           var remaining = this.layout.cols - x;
+          //console.log('Inserting ' + remaining + ' placeholders at ' + x + ', ' + y);
           this.createPlaceholders([x, y], idx, remaining);
 
           // Increment the current index due to divider insertion
@@ -445,13 +575,15 @@
 
           // Step the y-axis by the size of the last row.
           // For now we just check the height of the last item.
-          var lastItem = this.items[idx - (remaining + 1)];
-          step(lastItem);
+          var lastItemInRow = this.items[idx - 1];
+          step(lastItemInRow);
         }
 
-        if (idx >= from) {
+        item.setPosition(idx);
+        if (idx >= from && !options.skipItems) {
           item.hasCachedIcon && ++pendingCachedIcons;
-          item.render([x, y], idx);
+          //console.log('Rendering item ' + idx, item);
+          item.render([x * this.layout.gridItemWidth, this.layout.offsetY]);
         }
 
         // Increment the x-step by the sizing of the item.
@@ -460,7 +592,22 @@
         if (x >= this.layout.cols) {
           step(item);
         }
+
+        // If the item was a collapsed group, we need to skip rendering the
+        // items within it.
+        if ((item.detail.type === 'group') && item.detail.collapsed) {
+          for (;
+               idx < to && (this.items[idx + 1].detail.type !== 'groupend');
+               idx++);
+        } else {
+          // Don't set lastItem when in a collapsed group so that placeholders
+          // don't get added to it.
+          lastItem = item;
+        }
       }
+
+      //console.log('After render:');
+      //printItems();
 
       this.element.setAttribute('cols', this.layout.cols);
       pendingCachedIcons === 0 && onCachedIconRendered();

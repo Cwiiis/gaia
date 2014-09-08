@@ -2,9 +2,9 @@
 
 (function(exports) {
 
-  const ACTIVE_SCALE_ADJUST = 0.4;
+  const ACTIVE_SCALE = 1.4;
 
-  const COLLECTION_DROP_SCALE_ADJUST = 0.5;
+  const COLLECTION_DROP_SCALE = 0.5;
 
   /* This delay is the time passed once users stop the finger over an icon and
    * the rearrange is performed */
@@ -72,8 +72,8 @@
     /**
      * Returns the maximum active scale value.
      */
-    get maxActiveScale() {
-      return 1 + ACTIVE_SCALE_ADJUST;
+    get activeScale() {
+      return ACTIVE_SCALE;
     },
 
     /**
@@ -93,12 +93,12 @@
       this.gridView.stop();
       window.dispatchEvent(new CustomEvent('gaiagrid-dragdrop-begin'));
 
-      this.icon.noTransform = true;
       this.hoverItem = null;
       this.rearrangeDelay = null;
       this.enterEditMode();
       this.container.classList.add('dragging');
-      this.target.classList.add('active');
+      this.icon.scale = ACTIVE_SCALE;
+      this.icon.setActive(true);
 
       // Testing with some extra offset (20)
       this.xAdjust = this.gridView.layout.gridItemWidth / 2 + 20;
@@ -107,13 +107,13 @@
       var items = this.gridView.items;
       var lastElement = items[items.length - 1];
       this.maxScroll = lastElement.y + lastElement.pixelHeight +
-                       (this.icon.pixelHeight * this.maxActiveScale);
+                       (this.icon.pixelHeight * ACTIVE_SCALE);
 
-      // Make the icon larger
-      this.icon.transform(
-        e.pageX - this.xAdjust,
-        e.pageY - this.yAdjust + this.scrollable.scrollTop,
-        this.icon.scale + ACTIVE_SCALE_ADJUST);
+      // Redraw the icon at the new position and scale
+      this.icon.render(
+        [e.pageX - this.xAdjust,
+         e.pageY - this.yAdjust + this.scrollable.scrollTop],
+        true);
     },
 
     finish: function(e) {
@@ -141,14 +141,13 @@
 
           // When we set the position, we need to compensate for the transform
           // center being at the top-left.
+          var scale = this.gridView.layout.percent * COLLECTION_DROP_SCALE;
           var scaleAdjustX =
             ((this.gridView.layout.gridItemWidth * this.icon.scale) -
-             (this.gridView.layout.gridItemWidth *
-              (this.icon.scale - COLLECTION_DROP_SCALE_ADJUST))) / 2;
+             (this.gridView.layout.gridItemWidth * scale)) / 2;
           var scaleAdjustY =
             ((this.gridView.layout.gridItemHeight * this.icon.scale) -
-             (this.gridView.layout.gridItemHeight *
-              (this.icon.scale - COLLECTION_DROP_SCALE_ADJUST))) / 2;
+             (this.gridView.layout.gridItemHeight * scale)) / 2;
 
           // Create the clone icon that we'll animate dropping into the
           // collection
@@ -170,13 +169,13 @@
           this.icon.transform(
             this.hoverItem.x + scaleAdjustX,
             this.hoverItem.y + scaleAdjustY,
-            this.icon.scale - COLLECTION_DROP_SCALE_ADJUST,
+            scale,
             clone);
 
           // Now animate the original icon back into its original position.
           this.icon.transform(this.icon.x + scaleAdjustX,
                               this.icon.y + scaleAdjustY,
-                              this.icon.scale - COLLECTION_DROP_SCALE_ADJUST);
+                              scale);
 
           // Force a reflow on this icon, otherwise when we remove the active
           // class, it will transition from its original position instead of
@@ -187,13 +186,11 @@
         }
       }
 
-      // Hand back responsibility to GridItem to render itself.
-      delete this.icon.noTransform;
-      if (this.target) {
-        this.target.classList.remove('active');
-      }
+      // Hand back responsibility to Grid view to render the dragged item.
+      this.icon.scale = 1;
+      this.icon.setActive(false);
 
-      this.gridView.render();
+      this.gridView.render({normalizeGroups: true});
 
       // Save icon state if we need to
       if (this.dirty) {
@@ -299,16 +296,52 @@
       pageX = pageX - this.xAdjust;
       pageY = pageY - this.yAdjust;
 
-      this.icon.transform(
-        pageX,
-        pageY,
-        this.icon.scale + ACTIVE_SCALE_ADJUST);
+      this.icon.render([pageX, pageY], true);
+      var iconIsGroup = this.icon.detail.type === 'group';
+
+      // If we're a group being dragged, manually check if the y-coordinate
+      // has strayed far enough from the center of the row to initiate a
+      // movement.
+      if (iconIsGroup) {
+        if (Math.abs(pageY - this.icon.y) <=
+            this.gridView.layout.gridItemHeight / 2) {
+          return;
+        }
+      }
 
       // Reposition in the icons array if necessary.
       // Find the icon with the closest X/Y position of the move,
       // and insert ours before it.
-      var foundIndex = this.gridView.getNearestItemIndex(pageX, pageY);
+      var foundIndex = this.gridView.getNearestItemIndex(pageX, pageY,
+                         iconIsGroup);
+      if (foundIndex === null) {
+        return;
+      }
       var foundItem = this.gridView.items[foundIndex];
+
+      // If the found item is in a group, check if it has enough space for an
+      // icon
+      var itemCanDrop = true;
+      if (!iconIsGroup) {
+        // Search backwards for a group
+        var i;
+        for (i = foundIndex;
+             i >= 0 && this.gridView.items[i].detail.type !== 'group'; i--);
+        if (i >= 0) {
+          var groupItem = this.gridView.items[i];
+          if (groupItem.detail.type === 'group' &&
+              groupItem.size >= groupItem.maxSize) {
+            // Check if the item is already in this group, and if it isn't,
+            // disallow dropping.
+            for (i = this.icon.detail.index; i >= 0 &&
+                 this.gridView.items[i].detail.type !== 'group'; i--);
+            if (i < 0 || this.gridView.items[i].detail.type !== 'group' ||
+                this.gridView.items[i] !== groupItem) {
+              itemCanDrop = false;
+            }
+          }
+        }
+      }
 
       // Clear the rearrange delay and hover item if we aren't hovering over
       // anything.
@@ -322,35 +355,67 @@
       }
 
       if (foundIndex !== this.icon.detail.index) {
-        // Collections should not trigger a hover
-        if (this.icon.detail.type !== 'collection') {
+        // Collections and groups should not trigger a hover
+        if (this.icon.detail.type !== 'collection' && !iconIsGroup) {
           this.hoverItem = foundItem;
           this.hoverItem.element.classList.add('hovered');
         }
-        this.doRearrange = this.rearrange.bind(this, foundIndex);
-        this.rearrangeDelay =
-          setTimeout(this.doRearrange.bind(this),
-            this.hoverItem && this.hoverItem.detail.type === 'collection' ?
-              REARRANGE_COLLECTION_DELAY : REARRANGE_DELAY);
+        if (itemCanDrop) {
+          this.doRearrange = this.rearrange.bind(this, foundItem);
+          this.rearrangeDelay =
+            setTimeout(this.doRearrange.bind(this),
+              this.hoverItem && this.hoverItem.detail.type === 'collection' ?
+                REARRANGE_COLLECTION_DELAY : REARRANGE_DELAY);
+        }
       }
     },
 
     /**
      * Rearranges items in GridView.items
-     * @param {Integer} insertAt The position to insert our icon at.
+     * @param {Integer} tIndex The item to position the dragged icon at.
      */
-    rearrange: function(tIndex) {
+    rearrange: function(tItem) {
 
       // We get a reference to the position of this.icon within the items
       // array. Because placeholders are shifting around while we are dragging,
       // we can't trust the detail.index attribute. This will be fixed on every
       // render call though.
       var sIndex = this.gridView.items.indexOf(this.icon);
-      var toInsert = this.gridView.items.splice(sIndex, 1)[0];
+      var tIndex = this.gridView.items.indexOf(tItem);
 
+      // Check how many items we need to rearrange (if it's a group, there will
+      // be multiple items.
+      var eIndex = sIndex;
+      if (this.icon.detail.type === 'group') {
+        for (; this.gridView.items[eIndex].detail.type != 'groupend'; eIndex++);
+
+        // Find the first item in the row (we don't want to be able to insert
+        // groups in rows).
+        console.log('Rearranging group (' + sIndex + ', ' + eIndex + ') to ' + tIndex);
+        if (sIndex < tIndex) {
+          for (; this.gridView.items[tIndex].x > 0; tIndex++);
+        } else {
+          for (; this.gridView.items[tIndex].x > 0; tIndex--);
+        }
+        console.log('New tIndex: ' + tIndex);
+      } else if (sIndex < tIndex) {
+        tIndex++;
+      }
+
+      // We may have changed tIndex, so refresh our item pointer
+      tItem = this.gridView.items[tIndex];
+
+      // Remove the items from the array
+      var lastItemOffset = eIndex - sIndex;
+      var toInsert = this.gridView.items.splice(sIndex, lastItemOffset + 1);
+
+      // Craft the parameter list to reinsert the items at the correct place
+      toInsert.unshift(this.gridView.items.indexOf(tItem), 0);
+
+      // Reinsert items
       this.rearrangeDelay = null;
       this.dirty = true;
-      this.gridView.items.splice(tIndex, 0, toInsert);
+      this.gridView.items.splice.apply(this.gridView.items, toInsert);
 
       // Render to/from the selected position. We give a render buffer of 2
       // rows or so due to divider creation/removal. Otherwise we may
@@ -359,7 +424,7 @@
       var renderBuffer = this.gridView.layout.cols * 2;
       this.gridView.render({
         from: Math.min(tIndex, sIndex) - renderBuffer,
-        to: Math.max(tIndex, sIndex) + renderBuffer
+        to: Math.max(tIndex + lastItemOffset, eIndex) + renderBuffer
       });
     },
 
@@ -370,6 +435,7 @@
       this.gridView.element.dispatchEvent(
         new CustomEvent('editmode-start'));
       document.addEventListener('visibilitychange', this);
+      this.gridView.render();
     },
 
     exitEditMode: function() {
@@ -385,7 +451,7 @@
       this.gridView.element.dispatchEvent(new CustomEvent('editmode-end'));
       document.removeEventListener('visibilitychange', this);
       this.removeDragHandlers();
-      this.gridView.render({skipItems: true});
+      this.gridView.render();
     },
 
     removeDragHandlers: function() {
@@ -433,12 +499,16 @@
               return;
             }
 
-            var identifier = this.target.dataset.identifier;
-            this.icon = this.gridView.icons[identifier];
+            this.icon = this.gridView.findItemFromElement(this.target);
+            console.log('Long-press on ' + this.icon);
 
-            if (!this.icon) {
+            if (!this.icon || !this.icon.isDraggable() ||
+                this.icon.detail.type === 'placeholder') {
+              this.icon = null;
               return;
             }
+
+            console.log('Starting drag');
 
             this.addDragHandlers();
 

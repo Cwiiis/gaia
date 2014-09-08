@@ -172,6 +172,7 @@
           break;
 
         case 'gaiagrid-saveitems':
+          console.log('Saving');
           this.itemStore.save(this.grid.getItems());
           break;
 
