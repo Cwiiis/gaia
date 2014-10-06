@@ -22,10 +22,14 @@ gaia-menu {
   font-size: 0;
   color: #fff;
   display: block;
+  visibility: visible;
+  transform: translateY(0);
+  transition: transform ease-in-out .3s, visibility .3s;
 }
 
 gaia-menu[hidden] {
-  display: none;
+  visibility: hidden;
+  transform: translateY(100%);
 }
 
 gaia-menu:before {
