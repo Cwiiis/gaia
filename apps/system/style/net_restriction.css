@@ -1,0 +1,75 @@
+form[role="dialog"][data-type="confirm"].net-restriction-dialog {
+  position: absolute;
+  top: var(--rocketbar-urlbar-height);
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1026;
+
+  box-sizing: padding-box;
+  padding-bottom: 15rem;
+  pointer-events: all;
+  transition: opacity 0.25s;
+}
+
+form[role="dialog"][data-type="confirm"].net-restriction-dialog.hidden {
+  opacity: 0;
+}
+
+form[role="dialog"][data-type="confirm"].net-restriction-dialog .title {
+  font-size: 2.3rem;
+  line-height: 3.6rem;
+  font-weight: normal;
+}
+
+.net-restriction-dialog > section {
+  text-align: center;
+}
+
+#failed-logo {
+  display: inline-block;
+  width: 13.5rem;
+  height: 13.5rem;
+  background-image: url(net_error/no_connectivity.png);
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+@media (max-height: 380px) and (orientation: landscape) {
+  #failed-logo {
+    width: 9rem;
+    height: 9rem;
+  }
+}
+
+.net-restriction-dialog .subsection {
+  position: absolute;
+  width: 100%;
+  bottom: 7rem;
+}
+
+.net-restriction-dialog .subsection > button {
+  width: calc(100% - 3rem);
+  height: 4rem;
+  -moz-box-sizing: border-box;
+  vertical-align: middle;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  font-weight: normal;
+  line-height: 4rem;
+  outline: none;
+  font-size: 1.6rem;
+  text-shadow: none;
+  text-align: start;
+  padding: 0 1.2rem;
+  margin: 0 1.5rem 1rem 1.5rem;
+  background: rgba(87, 87, 87, 0.8);
+  border: none;
+  border-radius: 0;
+  position: relative;
+  color: #fff;
+  font-family: sans-serif;
+  font-style: italic;
+}
+

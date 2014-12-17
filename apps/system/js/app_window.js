@@ -503,6 +503,14 @@
       this.parentWindow = null;
     }
 
+    // Reinstate data restriction
+    if (this.temporaryDataAllowance) {
+      var app = applications.getByManifestURL(this.manifestURL);
+      if (app) {
+        navigator.mozApps.mgmt.disableMobileData(app);
+      }
+    }
+
     this.publish('willdestroy');
     this.uninstallSubComponents();
     if (this.element) {
@@ -535,8 +543,34 @@
               '<div class="touch-blocker"></div>' +
               '<div class="browser-container">' +
               ' <div class="screenshot-overlay"></div>' +
+              ' <div class="net-restriction-container"></div>' +
               '</div>' +
            '</div>';
+  };
+
+  AppWindow.prototype.netRestrictionView = function aw_net_restriction_view() {
+    return `
+      <form class="net-restriction-dialog hidden"
+            role="dialog" data-type="confirm">
+        <section>
+          <h1 id="error-title" class="title"
+              data-l10n-id="network-restriction"></h1>
+          <span id="failed-logo"></span>
+          <p id="error-prompt" class="title"
+             data-l10n-id="network-restriction-prompt"></p>
+        </section>
+        <div class="subsection">
+          <button id="allow-always-btn" type="button"
+                  data-l10n-id="always-allow"></button>
+        </div>
+        <menu id="actions">
+          <button id="cancel-btn" type="button" class="cancel"
+                  data-l10n-id="cancel"></button>
+          <button id="allow-now-btn" type="button" class="recommend"
+                  data-l10n-id="allow-for-now"></button>
+        </menu>
+      </form>
+    `;
   };
 
   /**
@@ -594,6 +628,8 @@
 
     this.containerElement.appendChild(fragment);
 
+    this.netRestrictionContainer =
+      this.element.querySelector('.net-restriction-container');
     this.screenshotOverlay = this.element.querySelector('.screenshot-overlay');
     this.fadeOverlay = this.element.querySelector('.fade-overlay');
 
@@ -884,6 +920,60 @@
 
   AppWindow.prototype._handle_mozbrowsererror =
     function aw__handle_mozbrowsererror(evt) {
+      console.log('mozbrowsererror', evt, JSON.stringify(evt.detail), this);
+
+      // Check to see if this error may be related to the app's mobile data
+      // restriction.
+      if ((evt.detail.type === 'offline' || evt.detail.type === 'notCached') &&
+          !this.isBrowser()/* && navigator.onLine*/) {
+        var app = applications.getByManifestURL(this.manifestURL);
+        if (/*!app.mobileDataEnabled*/true) {
+          // TODO: This should probably be a function.
+          if (!this.netRestrictionDialog) {
+            // Create elements
+            this.netRestrictionContainer.innerHTML = this.netRestrictionView();
+            this.netRestrictionDialog =
+              this.netRestrictionContainer.firstElementChild;
+
+            // Localise
+            var prompt =
+              this.netRestrictionDialog.querySelector('#error-prompt');
+            navigator.mozL10n.setAttributes(prompt,
+              'network-restriction-prompt', { name: app.manifest.name });
+
+            // Hook up signals
+            this.netRestrictionDialog.addEventListener('transition-end',
+              () => {
+                if (this.netRestrictionDialog.classList.contains('hidden')) {
+                  this.netRestrictionContainer.removeChild(
+                    this.netRestrictionDialog);
+                  this.netRestrictionDialog = null;
+                }
+              });
+
+            var button =
+              this.netRestrictionDialog.querySelector('#allow-always-btn');
+            button.addEventListener('click', () => {
+              this.temporaryDataAllowance = false;
+              navigator.mozApps.mgmt.enableMobileData(app);
+              this.reload();
+            });
+
+            button = this.netRestrictionDialog.querySelector('#cancel-btn');
+            button.addEventListener('click', () => { this.kill(); });
+
+            button = this.netRestrictionDialog.querySelector('#allow-now-btn');
+            button.addEventListener('click', () => {
+              this.temporaryDataAllowance = true;
+              navigator.mozApps.mgmt.enableMobileData(app);
+              this.reload();
+            });
+          }
+
+          this.netRestrictionDialog.classList.remove('hidden');
+        }
+      }
+
       if (evt.detail.type !== 'fatal') {
         return;
       }
@@ -903,6 +993,9 @@
 
   AppWindow.prototype._handle_mozbrowserloadstart =
     function aw__handle_mozbrowserloadstart(evt) {
+      if (this.netRestrictionDialog) {
+        this.netRestrictionDialog.classList.add('hidden');
+      }
       this.loading = true;
       this._changeState('loading', true);
       this.publish('loading');
