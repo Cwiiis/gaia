@@ -213,9 +213,30 @@
      * Launches an app.
      */
     clickIcon: function(e) {
+      console.log('clickIcon', e.target, this.element);
       e.preventDefault();
 
       var inEditMode = this.dragdrop && this.dragdrop.inEditMode;
+
+      if (e.target === this.element) {
+        console.log('Clicked on the grid at ' + e.clientX + ', ' + e.clientY);
+        // If we couldn't find an item, we may be tapping in the blank space
+        // of a group. In this case, see if the tap is inside a collapsed group
+        // and expand it.
+        for (var i = 0, iLen = this.items.length; i < iLen; i++) {
+          var item = this.items[i];
+          if (item.detail.type !== 'divider' || !item.detail.collapsed) {
+            continue;
+          }
+
+          if (e.clientX >= item.x && e.clientY >= item.y &&
+              e.clientY < item.y + item.pixelHeight) {
+            item.expand();
+          }
+          break;
+        }
+        return;
+      }
 
       var action = 'launch';
       if (e.target.classList.contains('remove')) {
