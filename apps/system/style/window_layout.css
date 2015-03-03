@@ -114,7 +114,7 @@
 }
 
 .appWindow > div > iframe {
-  position: absolute;
+  position: sticky;
   top: 0;
   left: 0;
   width: 100%;
@@ -199,7 +199,8 @@
 }
 
 .appWindow.collapsible > div.browser-container > iframe {
-  top: var(--rocketbar-urlbar-height);
+  bottom: var(--rocketbar-urlbar-height);
+  margin-bottom: 5rem;
 }
 
 /*****************************************************************************\
