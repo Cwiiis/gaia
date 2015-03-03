@@ -36,6 +36,7 @@
     this.containerElement = app.element;
     this._recentTitle = false;
     this._titleTimeout = null;
+    this._toolbarTimeout = null;
     this.scrollable = app.browserContainer;
     this.render();
 
@@ -335,14 +336,39 @@
     // somewhere. While panning from the bottom to the top, there is often
     // a scrollTop position of scrollTopMax - 1, which triggers the transition!
     var element = this.element;
+    var clearToolbarTimeout = () => {
+      if (this._toolbarTimeout !== null) {
+        clearTimeout(this._toolbarTimeout);
+        this._toolbarTimeout = null;
+      }
+    };
+    var publishStateChange = () => {
+      if (this.app.isActive()) {
+        this.app.publish('titlestatechanged');
+      }
+    };
     if (this.scrollable.scrollTop >= this.scrollable.scrollTopMax - 1) {
+      clearToolbarTimeout();
       element.classList.remove('maximized');
-    } else {
+      publishStateChange();
+    } else if (this.scrollable.scrollTop <= 1) {
+      clearToolbarTimeout();
       element.classList.add('maximized');
-    }
-
-    if (this.app.isActive()) {
-      this.app.publish('titlestatechanged');
+      publishStateChange();
+    } else if (this._toolbarTimeout === null ||
+               Math.round(this.scrollable.scrollTop) ===
+               Math.round(this.scrollable.scrollTopMax / 2)) {
+      clearToolbarTimeout();
+      this._toolbarTimeout = setTimeout(() => {
+        this._toolbarTimeout = null;
+        if (this.scrollable.scrollTop >= this.scrollable.scrollTopMax - 1) {
+          element.classList.remove('maximized');
+          publishStateChange();
+        } else {
+          element.classList.add('maximized');
+          publishStateChange();
+        }
+      }, 500);
     }
   };
 
