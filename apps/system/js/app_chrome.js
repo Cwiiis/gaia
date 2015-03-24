@@ -35,6 +35,8 @@
     this.containerElement = app.element;
     this._recentTitle = false;
     this._titleTimeout = null;
+    this.toolbarToggleTimeout = null;
+    this.scrollLockTimeout = null;
     this.scrollable = app.browserContainer;
     this.render();
 
@@ -69,6 +71,9 @@
   AppChrome.prototype.LOCK_ICON_WIDTH = 30;
   AppChrome.prototype.CLOSE_BUTTON_WIDTH = 50;
   AppChrome.prototype.PRIVATE_ICON_WIDTH = 35;
+
+  AppChrome.prototype.SCROLL_RELEASE_DELAY = 1000;
+  AppChrome.prototype.TOOLBAR_TOGGLE_DELAY = 100;
 
   AppChrome.prototype.reConfig = function() {
     var chrome = this.app.config.chrome;
@@ -343,10 +348,38 @@
     // somewhere. While panning from the bottom to the top, there is often
     // a scrollTop position of scrollTopMax - 1, which triggers the transition!
     var element = this.element;
+    var stateChanged = false;
     if (this.scrollable.scrollTop >= this.scrollable.scrollTopMax - 1) {
-      element.classList.remove('maximized');
+      if (element.classList.contains('maximized')) {
+        stateChanged = true;
+      }
     } else {
-      element.classList.add('maximized');
+      if (!element.classList.contains('maximized')) {
+        stateChanged = true;
+      }
+    }
+
+    if (stateChanged) {
+      // Delay showing/hiding the toolbar for a very short time to help
+      // with motion event jitter on horizontal scrolling.
+      if (this.toolbarToggleTimeout !== null) {
+        clearTimeout(this.toolbarToggleTimeout);
+      }
+      this.toolbarToggleTimeout = setTimeout(() => {
+        this.toolbarToggleTimeout = null;
+        element.classList.toggle('maximized');
+      }, this.TOOLBAR_TOGGLE_DELAY);
+
+      // Lock the toolbar in this position for some time to stop the toolbar
+      // immediately disappearing or reappearing after toggling.
+      this.app.element.classList.add('scroll-lock');
+      if (this.scrollLockTimeout !== null) {
+        clearTimeout(this.scrollLockTimeout);
+      }
+      this.scrollLockTimeout = setTimeout(() => {
+        this.scrollLockTimeout = null;
+        this.app.element.classList.remove('scroll-lock');
+      }, this.SCROLL_RELEASE_DELAY);
     }
 
     if (this.app.isActive()) {

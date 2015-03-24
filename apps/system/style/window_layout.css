@@ -198,6 +198,10 @@
   overflow-y: scroll;
 }
 
+.appWindow.collapsible.scroll-lock > div.browser-container {
+  overflow-y: hidden;
+}
+
 .appWindow.collapsible > div.browser-container > iframe {
   top: var(--rocketbar-urlbar-height);
 }
