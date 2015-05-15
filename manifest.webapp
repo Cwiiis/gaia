@@ -1,0 +1,20 @@
+{
+  "name": "New Home Screen",
+  "description": "Vertical paged home screen.",
+  "launch_path": "/index.html",
+  "type": "privileged",
+  "role": "homescreen",
+  "developer": {
+    "name": "The Gaia Team",
+    "url": "https://github.com/mozilla-b2g/gaia"
+  },
+  "permissions": {
+    "themeable":{},
+    "mobileconnection":{},
+    "open-remote-window":{},
+    "homescreen-webapps-manage":{},
+    "systemXHR":{},
+    "settings":{ "access": "readwrite" }
+  },
+  "orientation": "default"
+}

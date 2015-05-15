@@ -1,0 +1,54 @@
+gaia-container {
+  width: 100vw;
+  overflow-x: hidden;
+  display: flex;
+  flex-flow: row wrap;
+  transition: opacity 0.2s;
+  box-sizing: padding-box;
+  padding: 0.8rem;
+}
+
+gaia-container.loading {
+  display: none;
+  opacity: 0;
+}
+
+gaia-container > .gaia-container-child:not(.added):not(.dragging) {
+  transition: transform 0.2s;
+}
+
+gaia-container > .gaia-container-child.dragging {
+  z-index: 1;
+  will-change: transform;
+}
+
+gaia-container > .gaia-container-child:not(.added):not(.removed) > * {
+  transition: transform 0.2s, opacity 0.2s;
+}
+
+gaia-container > .gaia-container-child.dragging > * {
+  transform: scale(1.1);
+  opacity: 0.8;
+}
+
+gaia-container > .gaia-container-child.added > * {
+  animation-name: added;
+  animation-duration: 0.4s;
+  z-index: 1;
+}
+
+@keyframes added {
+  0% { opacity: 0; transform: scale(0.5); }
+  100% { opacity: 1; }
+}
+
+gaia-container > .gaia-container-child.removed > * {
+  animation-name: removed;
+  animation-duration: 0.4s;
+}
+
+@keyframes removed {
+  45% { transform: scaleY(0.1); }
+  55% { transform: scaleY(0.1); }
+  100% { transform: scale(0); }
+}

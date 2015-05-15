@@ -1,0 +1,31 @@
+html {
+  font-size: 10px;
+}
+
+html, body {
+  margin: 0;
+}
+
+body {
+  width: 100%;
+}
+
+body.dragging {
+  overflow: hidden;
+}
+
+gaia-app-icon {
+  display: inline-block;
+  width: calc((100vw - 1.6rem) / 3 - 1px);
+  transition: opacity 0.2s;
+  box-sizing: border-box;
+  border: 0.8rem solid transparent;
+}
+
+gaia-container.small gaia-app-icon {
+  width: calc((100vw - 1.6rem) / 4);
+}
+
+gaia-app-icon.launching {
+  opacity: 0.8
+}

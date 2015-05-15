@@ -1,0 +1,6 @@
+[submodule "gaia-app-icon"]
+	path = gaia-app-icon
+	url = https://gitlab.com/Cwiiis/gaia-app-icon.git
+[submodule "gaia-container"]
+	path = gaia-container
+	url = https://gitlab.com/Cwiiis/gaia-container.git
