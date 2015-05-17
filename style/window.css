@@ -2,30 +2,79 @@ html {
   font-size: 10px;
 }
 
-html, body {
-  margin: 0;
-}
-
 body {
   width: 100%;
+  margin: 0;
+  overflow: hidden;
+  font-size: 0;
 }
 
-body.dragging {
+#shadow {
+  position: absolute;
+  z-index: 1;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), transparent);
+  width: 100%;
+  height: 0.8rem;
+  transition: visibility 0.2s, opacity 0.2s;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+#shadow.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+#scrollable {
+  overflow: auto;
+  height: 100vh;
+}
+
+#scrollable.dragging {
   overflow: hidden;
 }
 
-gaia-app-icon {
+/* This weird arrangement of constant sizes, transforms and containers is so
+ * the gaia-container can animate fully between small and not-small states.
+ * Without this animation, the container would be unnecessary and only the
+ * width would need to be specified.
+ */
+.icon-container {
+  position: relative;
   display: inline-block;
-  width: calc((100vw - 1.6rem) / 3 - 1px);
-  transition: opacity 0.2s;
-  box-sizing: border-box;
-  border: 0.8rem solid transparent;
+  width: 32vw;
+  height: calc(32vw + 1.9rem);
 }
 
-gaia-container.small gaia-app-icon {
-  width: calc((100vw - 1.6rem) / 4);
+gaia-app-icon {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 32vw;
+  box-sizing: border-box;
+  border: 0.8rem solid transparent;
+  transition: transform 0.2s, opacity 0.2s;
 }
 
 gaia-app-icon.launching {
   opacity: 0.8
+}
+
+gaia-container.small > .gaia-container-child > .icon-container {
+  width: 24vw;
+  height: calc(24vw + 1.9rem);
+}
+
+gaia-container > .gaia-container-child.dragging > .icon-container > gaia-app-icon {
+  transform: scale(1.1);
+  opacity: 0.8;
+}
+
+gaia-container.small > .gaia-container-child > .icon-container > gaia-app-icon {
+  transform: scale(0.75) translate(-4vw, -4vw);
+}
+
+gaia-container.small > .gaia-container-child.dragging > .icon-container > gaia-app-icon {
+  transform: scale(0.8) translate(-3.2vw, -3.2vw);
 }

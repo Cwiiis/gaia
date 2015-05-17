@@ -5,7 +5,7 @@ gaia-container {
   flex-flow: row wrap;
   transition: opacity 0.2s;
   box-sizing: padding-box;
-  padding: 0.8rem;
+  padding: 1.5vw;
 }
 
 gaia-container.loading {
@@ -23,15 +23,10 @@ gaia-container > .gaia-container-child.dragging {
 }
 
 gaia-container > .gaia-container-child:not(.added):not(.removed) > * {
-  transition: transform 0.2s, opacity 0.2s;
+  transition: transform 0.2s;
 }
 
-gaia-container > .gaia-container-child.dragging > * {
-  transform: scale(1.1);
-  opacity: 0.8;
-}
-
-gaia-container > .gaia-container-child.added > * {
+gaia-container > .gaia-container-child.added gaia-app-icon {
   animation-name: added;
   animation-duration: 0.4s;
   z-index: 1;
@@ -42,7 +37,7 @@ gaia-container > .gaia-container-child.added > * {
   100% { opacity: 1; }
 }
 
-gaia-container > .gaia-container-child.removed > * {
+gaia-container > .gaia-container-child.removed gaia-app-icon {
   animation-name: removed;
   animation-duration: 0.4s;
 }
