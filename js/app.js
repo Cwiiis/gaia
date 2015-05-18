@@ -1,103 +1,40 @@
 'use strict';
 
-const INITIAL_LOAD_STAGGER = 100;
+const APP_LOAD_STAGGER = 100;
 const PINCH_DISTANCE_THRESHOLD = 50;
 
 (function(exports) {
 
   function App() {
+    // Element references
     this.shadow = document.getElementById('shadow');
     this.scrollable = document.getElementById('scrollable');
     this.icons = document.getElementById('apps');
 
-    // Display the top shadow when scrolling down
-    var scrolled = false;
-    this.scrollable.addEventListener('scroll', () => {
-      if (scrolled !== this.scrollable.scrollTop > 0) {
-        scrolled = !scrolled;
-        this.shadow.classList.toggle('visible', scrolled);
-      }
-    });
+    // App-loading
+    this.lastAppLoad = Date.now();
 
-    // Disable overflow when dragging to stop apzc hijacking the events.
-    this.icons.addEventListener('drag-start', () => {
-      this.scrollable.classList.add('dragging');
-    });
-    this.icons.addEventListener('drag-finish', () => {
-      this.scrollable.classList.remove('dragging');
-    });
+    // Scroll behaviour
+    this.scrolled = false;
 
-    // Enable app-launching
-    this.icons.addEventListener('activate', (e) => {
-      e.detail.target.firstElementChild.launch();
-    });
+    // Pinch-to-zoom
+    this.small = false;
+    this.wasSmall = false;
+    this.pinchListening = false;
 
-    // Enable pinch to change layout
-    var small = false;
-    var startDistance = 0;
-    var startSmall = false;
-    var pinchListening = false;
-    this.icons.addEventListener('touchstart', (e) => {
-      if (e.touches.length === 2) {
-        startSmall = small;
-        startDistance =
-          Math.sqrt(Math.pow(e.touches[0].clientX - e.touches[1].clientX, 2) +
-                    Math.pow(e.touches[0].clientY - e.touches[1].clientY, 2));
-        pinchListening = true;
-      } else {
-        pinchListening = false;
-      }
-    });
-    this.icons.addEventListener('touchmove', (e) => {
-      if (!pinchListening || e.touches.length !== 2) {
-        return;
-      }
-
-      var distance =
-        (Math.sqrt(Math.pow(e.touches[0].clientX - e.touches[1].clientX, 2) +
-                   Math.pow(e.touches[0].clientY - e.touches[1].clientY, 2))) -
-        startDistance;
-
-      var newState;
-      if (startSmall) {
-        newState = (distance > PINCH_DISTANCE_THRESHOLD);
-      } else {
-        newState = (distance < -PINCH_DISTANCE_THRESHOLD);
-      }
-
-      if (small !== newState) {
-        small = newState;
-        this.icons.classList.toggle('small', small);
-        this.icons.synchronise();
-        pinchListening = false;
-      }
-    });
+    // Signal handlers
+    this.scrollable.addEventListener('scroll', this);
+    this.icons.addEventListener('activate', this);
+    this.icons.addEventListener('drag-start', this);
+    this.icons.addEventListener('drag-finish', this);
+    this.icons.addEventListener('touchstart', this);
+    this.icons.addEventListener('touchmove', this);
 
     // Populate apps
     var request = navigator.mozApps.mgmt.getAll();
-    var nApps = 0;
     request.onsuccess = (e) => {
-      console.log(request.result);
       for (var app of request.result) {
-        var manifest = app.manifest;
-        if (!manifest) {
-          continue;
-        }
-
-        if (manifest.role && manifest.role !== 'search') {
-          console.log('Skipping app with role \'' + manifest.role + '\'');
-          continue;
-        }
-
-        window.setTimeout(function loadApp(app) {
-          if (app.manifest.entry_points) {
-            for (var entryPoint in app.manifest.entry_points) {
-              this.addAppIcon(app, entryPoint);
-            }
-          } else {
-            this.addAppIcon(app);
-          }
-        }.bind(this, app), INITIAL_LOAD_STAGGER * nApps++);
+        this.addApp(app);
       }
     };
     request.onerror = (e) => {
@@ -106,6 +43,34 @@ const PINCH_DISTANCE_THRESHOLD = 50;
   }
 
   App.prototype = {
+    addApp: function(app) {
+      var manifest = app.manifest;
+      if (!manifest) {
+        console.log('Skipping app with no manifest', app);
+        return;
+      }
+
+      if (manifest.role && manifest.role !== 'search') {
+        console.log('Skipping app with role \'' + manifest.role + '\'', app);
+        return;
+      }
+
+      var currentTime = Date.now();
+      var targetDelay =
+        Math.max(0, APP_LOAD_STAGGER - (currentTime - this.lastAppLoad));
+      this.lastAppLoad = currentTime + targetDelay;
+
+      window.setTimeout(function loadApp(app) {
+        if (app.manifest.entry_points) {
+          for (var entryPoint in app.manifest.entry_points) {
+            this.addAppIcon(app, entryPoint);
+          }
+        } else {
+          this.addAppIcon(app);
+        }
+      }.bind(this, app), targetDelay);
+    },
+
     addAppIcon: function(app, entryPoint) {
       var container = document.createElement('div');
       container.classList.add('icon-container');
@@ -115,6 +80,74 @@ const PINCH_DISTANCE_THRESHOLD = 50;
       container.appendChild(icon);
       icon.entryPoint = entryPoint;
       icon.app = app;
+    },
+
+    handleEvent: function(e) {
+      switch (e.type) {
+      // Display the top shadow when scrolling down
+      case 'scroll':
+        if (this.scrolled !== this.scrollable.scrollTop > 0) {
+          this.scrolled = !this.scrolled;
+          this.shadow.classList.toggle('visible', this.scrolled);
+        }
+        break;
+
+      // App launching
+      case 'activate':
+        e.detail.target.firstElementChild.launch();
+        break;
+
+      // Disable scrolling during dragging
+      case 'drag-start':
+        this.scrollable.classList.add('dragging');
+        break;
+
+      case 'drag-finish':
+        this.scrollable.classList.remove('dragging');
+        break;
+
+      // Pinch-to-zoom
+      case 'touchstart':
+        if (e.touches.length === 2) {
+          this.wasSmall = this.small;
+          this.startDistance =
+            Math.sqrt(Math.pow(e.touches[0].clientX -
+                               e.touches[1].clientX, 2) +
+                      Math.pow(e.touches[0].clientY -
+                               e.touches[1].clientY, 2));
+          this.pinchListening = true;
+        } else {
+          this.pinchListening = false;
+        }
+        break;
+
+      case 'touchmove':
+        if (!this.pinchListening || e.touches.length !== 2) {
+          return;
+        }
+
+        var distance =
+          (Math.sqrt(Math.pow(e.touches[0].clientX -
+                              e.touches[1].clientX, 2) +
+                     Math.pow(e.touches[0].clientY -
+                              e.touches[1].clientY, 2))) -
+          this.startDistance;
+
+        var newState;
+        if (this.wasSmall) {
+          newState = (distance > PINCH_DISTANCE_THRESHOLD);
+        } else {
+          newState = (distance < -PINCH_DISTANCE_THRESHOLD);
+        }
+
+        if (this.small !== newState) {
+          this.small = newState;
+          this.icons.classList.toggle('small', this.small);
+          this.icons.synchronise();
+          this.pinchListening = false;
+        }
+        break;
+      }
     }
   };
 
