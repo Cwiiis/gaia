@@ -12,9 +12,7 @@
     "themeable":{},
     "mobileconnection":{},
     "open-remote-window":{},
-    "homescreen-webapps-manage":{},
-    "systemXHR":{},
-    "settings":{ "access": "readwrite" }
+    "homescreen-webapps-manage":{}
   },
   "orientation": "default"
 }
