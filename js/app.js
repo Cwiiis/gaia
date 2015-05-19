@@ -2,6 +2,9 @@
 
 const APP_LOAD_STAGGER = 100;
 const PINCH_DISTANCE_THRESHOLD = 50;
+const HIDDEN_ROLES = [
+  'system', 'input', 'homescreen', 'theme', 'addon', 'langpack'
+];
 
 (function(exports) {
 
@@ -29,6 +32,8 @@ const PINCH_DISTANCE_THRESHOLD = 50;
     this.icons.addEventListener('drag-finish', this);
     this.icons.addEventListener('touchstart', this);
     this.icons.addEventListener('touchmove', this);
+    navigator.mozApps.mgmt.addEventListener('install', this);
+    navigator.mozApps.mgmt.addEventListener('uninstall', this);
 
     // Populate apps
     var request = navigator.mozApps.mgmt.getAll();
@@ -44,13 +49,13 @@ const PINCH_DISTANCE_THRESHOLD = 50;
 
   App.prototype = {
     addApp: function(app) {
-      var manifest = app.manifest;
+      var manifest = app.manifest || app.updateManifest;
       if (!manifest) {
         console.log('Skipping app with no manifest', app);
         return;
       }
 
-      if (manifest.role && manifest.role !== 'search') {
+      if (manifest.role && HIDDEN_ROLES.indexOf(manifest.role) !== -1) {
         console.log('Skipping app with role \'' + manifest.role + '\'', app);
         return;
       }
@@ -61,8 +66,9 @@ const PINCH_DISTANCE_THRESHOLD = 50;
       this.lastAppLoad = currentTime + targetDelay;
 
       window.setTimeout(function loadApp(app) {
-        if (app.manifest.entry_points) {
-          for (var entryPoint in app.manifest.entry_points) {
+        var manifest = app.manifest || app.updateManifest;
+        if (manifest.entry_points) {
+          for (var entryPoint in manifest.entry_points) {
             this.addAppIcon(app, entryPoint);
           }
         } else {
@@ -145,6 +151,22 @@ const PINCH_DISTANCE_THRESHOLD = 50;
           this.icons.classList.toggle('small', this.small);
           this.icons.synchronise();
           this.pinchListening = false;
+        }
+        break;
+
+      // Add apps installed after startup
+      case 'install':
+        this.addApp(e.application);
+        break;
+
+      // Remove apps uninstalled after startup
+      case 'uninstall':
+        for (var child of this.icons.children) {
+          if (child.firstElementChild.app.manifestURL ===
+              e.application.manifestURL) {
+            this.icons.removeChild(child);
+            break;
+          }
         }
         break;
       }
