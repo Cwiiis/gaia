@@ -1,7 +1,9 @@
 'use strict';
 
-const APP_LOAD_STAGGER = 100;
+const APP_LOAD_STAGGER = 0;//100;
 const PINCH_DISTANCE_THRESHOLD = 50;
+const AUTOSCROLL_DISTANCE = 45;
+const DELETE_DISTANCE = 60;
 const HIDDEN_ROLES = [
   'system', 'input', 'homescreen', 'theme', 'addon', 'langpack'
 ];
@@ -13,6 +15,7 @@ const HIDDEN_ROLES = [
     this.shadow = document.getElementById('shadow');
     this.scrollable = document.getElementById('scrollable');
     this.icons = document.getElementById('apps');
+    this.uninstall = document.getElementById('uninstall');
 
     // App-loading
     this.lastAppLoad = Date.now();
@@ -29,6 +32,8 @@ const HIDDEN_ROLES = [
     this.scrollable.addEventListener('scroll', this);
     this.icons.addEventListener('activate', this);
     this.icons.addEventListener('drag-start', this);
+    this.icons.addEventListener('drag-move', this);
+    this.icons.addEventListener('drag-end', this);
     this.icons.addEventListener('drag-finish', this);
     this.icons.addEventListener('touchstart', this);
     this.icons.addEventListener('touchmove', this);
@@ -103,13 +108,47 @@ const HIDDEN_ROLES = [
         e.detail.target.firstElementChild.launch();
         break;
 
-      // Disable scrolling during dragging
+      // Disable scrolling during dragging, and display app-uninstall bar
       case 'drag-start':
-        this.scrollable.classList.add('dragging');
+        document.body.classList.add('dragging');
+        if (e.detail.target.firstElementChild.app.removable) {
+          this.uninstall.classList.add('dragging');
+        }
         break;
 
       case 'drag-finish':
-        this.scrollable.classList.remove('dragging');
+        document.body.classList.remove('dragging');
+        this.uninstall.classList.remove('dragging');
+        break;
+
+      // Handle app uninstallation
+      case 'drag-end':
+        if (e.detail.clientY <= window.innerHeight - DELETE_DISTANCE) {
+          return;
+        }
+
+        var app = e.detail.target.firstElementChild.app;
+        if (!app.removable) {
+          return;
+        }
+
+        e.preventDefault();
+        navigator.mozApps.mgmt.uninstall(app);
+        break;
+
+      // Handle app-uninstall bar highlight and auto-scroll
+      case 'drag-move':
+        var inDelete = false;
+        var inAutoscroll = false;
+
+        if (e.detail.clientY > window.innerHeight - DELETE_DISTANCE) {
+          inDelete = true;
+        } else if (e.detail.clientY >
+                   window.innerHeight - AUTOSCROLL_DISTANCE) {
+          inAutoscroll = true;
+        }
+
+        this.uninstall.classList.toggle('active', inDelete);
         break;
 
       // Pinch-to-zoom

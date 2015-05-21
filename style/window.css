@@ -31,7 +31,8 @@ body {
   height: 100vh;
 }
 
-#scrollable.dragging {
+.dragging #scrollable,
+.dragging gaia-container {
   overflow: hidden;
 }
 
@@ -77,4 +78,26 @@ gaia-container.small > .gaia-container-child > .icon-container > gaia-app-icon {
 
 gaia-container.small > .gaia-container-child.dragging > .icon-container > gaia-app-icon {
   transform: scale(0.8) translate(-3.2vw, -3.2vw);
+}
+
+#uninstall {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 6rem;
+  opacity: 0.5;
+  background: no-repeat center center url('images/delete.png'), linear-gradient(to bottom, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.2));
+  background-size: 4.5rem 4.5rem, auto auto;
+  box-shadow: 0 -0.1rem 0.5rem rgba(0, 0, 0, 0.5);
+  transition: transform 0.2s, opacity 0.2s;
+  transform: translateY(6.5rem);
+}
+
+#uninstall.dragging {
+  transform: none;
+}
+
+#uninstall.active {
+  opacity: 1;
 }
