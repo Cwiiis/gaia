@@ -1,7 +1,8 @@
 'use strict';
 
 const APP_LOAD_STAGGER = 0;//100;
-const PINCH_DISTANCE_THRESHOLD = 50;
+const PINCH_DISTANCE_THRESHOLD = 150;
+const PINCH_FEEDBACK_THRESHOLD = 5;
 const AUTOSCROLL_DISTANCE = 45;
 const DELETE_DISTANCE = 60;
 const HIDDEN_ROLES = [
@@ -38,6 +39,8 @@ const HIDDEN_ROLES = [
     this.icons.addEventListener('drag-finish', this);
     this.icons.addEventListener('touchstart', this);
     this.icons.addEventListener('touchmove', this);
+    this.icons.addEventListener('touchend', this);
+    this.icons.addEventListener('touchcancel', this);
     navigator.mozApps.mgmt.addEventListener('install', this);
     navigator.mozApps.mgmt.addEventListener('uninstall', this);
 
@@ -179,6 +182,17 @@ const HIDDEN_ROLES = [
         });
     },
 
+    stopPinch: function() {
+      if (!this.pinchListening) {
+        return;
+      }
+
+      document.body.classList.remove('zooming');
+      this.pinchListening = false;
+      this.scrollable.style.transition = '';
+      this.scrollable.style.transform = '';
+    },
+
     handleEvent: function(e) {
       switch (e.type) {
       // Display the top shadow when scrolling down
@@ -252,8 +266,10 @@ const HIDDEN_ROLES = [
                       Math.pow(e.touches[0].clientY -
                                e.touches[1].clientY, 2));
           this.pinchListening = true;
+          document.body.classList.add('zooming');
+          this.scrollable.style.transition = 'unset';
         } else {
-          this.pinchListening = false;
+          this.stopPinch();
         }
         break;
 
@@ -271,7 +287,7 @@ const HIDDEN_ROLES = [
 
         var newState;
         if (this.wasSmall) {
-          newState = (distance > PINCH_DISTANCE_THRESHOLD);
+          newState = (distance < PINCH_DISTANCE_THRESHOLD);
         } else {
           newState = (distance < -PINCH_DISTANCE_THRESHOLD);
         }
@@ -280,8 +296,16 @@ const HIDDEN_ROLES = [
           this.small = newState;
           this.icons.classList.toggle('small', this.small);
           this.icons.synchronise();
-          this.pinchListening = false;
+          this.stopPinch();
+        } else if (Math.abs(distance) > PINCH_FEEDBACK_THRESHOLD) {
+          this.scrollable.style.transform = 'scale(' +
+            ((window.innerWidth + distance / 4) / window.innerWidth) + ')';
         }
+        break;
+
+      case 'touchend':
+      case 'touchcancel':
+        this.stopPinch();
         break;
 
       // Add apps installed after startup

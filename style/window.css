@@ -29,6 +29,11 @@ body {
 #scrollable {
   overflow: auto;
   height: 100vh;
+  transition: transform 0.2s;
+}
+
+.zooming #scrollable {
+  will-change: transform;
 }
 
 .dragging #scrollable,
