@@ -34,6 +34,7 @@ const HIDDEN_ROLES = [
     this.icons.addEventListener('drag-start', this);
     this.icons.addEventListener('drag-move', this);
     this.icons.addEventListener('drag-end', this);
+    this.icons.addEventListener('drag-rearrange', this);
     this.icons.addEventListener('drag-finish', this);
     this.icons.addEventListener('touchstart', this);
     this.icons.addEventListener('touchmove', this);
@@ -41,15 +42,43 @@ const HIDDEN_ROLES = [
     navigator.mozApps.mgmt.addEventListener('uninstall', this);
 
     // Populate apps
-    var request = navigator.mozApps.mgmt.getAll();
-    request.onsuccess = (e) => {
-      for (var app of request.result) {
-        this.addApp(app);
-      }
+    var populateApps = () => {
+      var request = navigator.mozApps.mgmt.getAll();
+      request.onsuccess = (e) => {
+        for (var app of request.result) {
+          this.addApp(app);
+        }
+
+        setTimeout(() => {
+          for (var data of this.startupMetadata) {
+            console.log('Removing unknown app metadata entry', data.id);
+            this.metadata.remove(data.id);
+          }
+          this.startupMetadata = [];
+          this.storeAppOrder();
+        }, Math.max(0, (this.lastAppLoad - Date.now()) + APP_LOAD_STAGGER));
+      };
+      request.onerror = (e) => {
+        console.error("Error calling getAll: " + request.error.name);
+      };
     };
-    request.onerror = (e) => {
-      console.error("Error calling getAll: " + request.error.name);
-    };
+
+    this.startupMetadata = [];
+    this.metadata = new HomeMetadata();
+    this.metadata.init().then(() => {
+      this.metadata.get().then((results) => {
+        this.startupMetadata = results;
+        populateApps();
+      },
+      (e) => {
+        console.error('Failed to retrieve metadata entries', e);
+        populateApps();
+      });
+    },
+    (e) => {
+      console.error('Failed to initialise metadata db', e);
+      populateApps();
+    });
   }
 
   App.prototype = {
@@ -83,14 +112,71 @@ const HIDDEN_ROLES = [
     },
 
     addAppIcon: function(app, entryPoint) {
+      var id = app.manifestURL + '/' + (entryPoint ? entryPoint : '');
+      var entry = this.startupMetadata.findIndex((element) => {
+        return element.id === id;
+      });
       var container = document.createElement('div');
       container.classList.add('icon-container');
-      this.icons.appendChild(container);
+
+      // Try to insert the app in the right order
+      if (entry !== -1) {
+        var order = this.startupMetadata[entry].order || 0;
+        container.order = order;
+        var children = this.icons.children;
+        for (var i = 0, iLen = children.length; i < iLen; i++) {
+          var child = children[i];
+          if (!child.order || child.order < order) {
+            continue;
+          }
+          this.icons.insertBefore(container, child);
+          break;
+        }
+      }
+
+      if (!container.parentNode) {
+        this.icons.appendChild(container);
+      }
 
       var icon = document.createElement('gaia-app-icon');
       container.appendChild(icon);
       icon.entryPoint = entryPoint;
       icon.app = app;
+
+      // Load the cached icon
+      if (entry !== -1) {
+        icon.icon = this.startupMetadata[entry].icon;
+        this.startupMetadata.splice(entry, 1);
+      }
+
+      // Save the refreshed app icon
+      icon.addEventListener('icon-loaded', function(icon, id) {
+        icon.icon.then((blob) => {
+          this.metadata.set([{ id: id, icon: blob }]).then(
+            () => {},
+            (e) => {
+              console.error('Error saving app icon', e);
+            });
+        });
+      }.bind(this, icon, id));
+
+      // Refresh app data (sets app title and refreshes app icon)
+      icon.refresh();
+    },
+
+    storeAppOrder: function() {
+      var storedOrders = [];
+      var children = this.icons.children;
+      for (var i = 0, iLen = children.length; i < iLen; i++) {
+        var appIcon = children[i].firstElementChild;
+        var id = appIcon.app.manifestURL + '/' + appIcon.entryPoint;
+        storedOrders.push({ id: id, order: i });
+      }
+      this.metadata.set(storedOrders).then(
+        () => {},
+        (e) => {
+          console.error('Error storing app order', e);
+        });
     },
 
     handleEvent: function(e) {
@@ -134,6 +220,11 @@ const HIDDEN_ROLES = [
 
         e.preventDefault();
         navigator.mozApps.mgmt.uninstall(app);
+        break;
+
+      // Save the app grid after rearrangement
+      case 'drag-rearrange':
+        this.storeAppOrder();
         break;
 
       // Handle app-uninstall bar highlight and auto-scroll
@@ -196,6 +287,7 @@ const HIDDEN_ROLES = [
       // Add apps installed after startup
       case 'install':
         this.addApp(e.application);
+        this.storeAppOrder();
         break;
 
       // Remove apps uninstalled after startup
@@ -204,6 +296,7 @@ const HIDDEN_ROLES = [
           if (child.firstElementChild.app.manifestURL ===
               e.application.manifestURL) {
             this.icons.removeChild(child);
+            this.storeAppOrder();
             break;
           }
         }
