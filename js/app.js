@@ -55,7 +55,11 @@ const HIDDEN_ROLES = [
         setTimeout(() => {
           for (var data of this.startupMetadata) {
             console.log('Removing unknown app metadata entry', data.id);
-            this.metadata.remove(data.id);
+            this.metadata.remove(data.id).then(
+              () => {},
+              (e) => {
+                console.error('Error removing unknown app metadata entry', e);
+              });
           }
           this.startupMetadata = [];
           this.storeAppOrder();
@@ -143,7 +147,9 @@ const HIDDEN_ROLES = [
 
       var icon = document.createElement('gaia-app-icon');
       container.appendChild(icon);
-      icon.entryPoint = entryPoint;
+      if (entryPoint) {
+        icon.entryPoint = entryPoint;
+      }
       icon.app = app;
 
       // Load the cached icon

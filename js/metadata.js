@@ -65,8 +65,8 @@ const DB_VERSION = 1;
       return new Promise((resolve, reject) => {
         var txn = this.db.transaction([DB_ORDER_STORE, DB_ICON_STORE],
                                       'readwrite');
-        txn.objectStore(DB_ORDER_STORE).remove(id);
-        txn.objectStore(DB_ICON_STORE).remove(id);
+        txn.objectStore(DB_ORDER_STORE).delete(id);
+        txn.objectStore(DB_ICON_STORE).delete(id);
         txn.oncomplete = resolve;
         txn.onerror = reject;
       });
