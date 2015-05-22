@@ -9,6 +9,10 @@ body {
   font-size: 0;
 }
 
+* {
+  -moz-user-select: none;
+}
+
 #shadow {
   position: absolute;
   z-index: 1;
