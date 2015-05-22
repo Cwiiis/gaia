@@ -187,7 +187,7 @@ const HIDDEN_ROLES = [
         return;
       }
 
-      document.body.classList.remove('zooming');
+      this.scrollable.addEventListener('transitionend', this);
       this.pinchListening = false;
       this.scrollable.style.transition = '';
       this.scrollable.style.transform = '';
@@ -306,6 +306,13 @@ const HIDDEN_ROLES = [
       case 'touchend':
       case 'touchcancel':
         this.stopPinch();
+        break;
+
+      case 'transitionend':
+        if (e.target === this.scrollable) {
+          this.scrollable.removeEventListener('transitionend', this);
+          document.body.classList.remove('zooming');
+        }
         break;
 
       // Add apps installed after startup

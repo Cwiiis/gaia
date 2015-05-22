@@ -36,7 +36,9 @@ body {
   will-change: transform;
 }
 
+.zooming #scrollable,
 .dragging #scrollable,
+.zooming gaia-container,
 .dragging gaia-container {
   overflow: hidden;
 }
