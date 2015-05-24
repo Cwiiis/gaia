@@ -201,6 +201,7 @@ const HIDDEN_ROLES = [
       this.pinchListening = false;
       this.scrollable.style.transition = '';
       this.scrollable.style.transform = '';
+      this.handleEvent({ type: 'scroll' });
     },
 
     handleEvent: function(e) {
@@ -300,6 +301,11 @@ const HIDDEN_ROLES = [
           newState = (distance < PINCH_DISTANCE_THRESHOLD);
         } else {
           newState = (distance < -PINCH_DISTANCE_THRESHOLD);
+        }
+
+        if (!this.scrolled && distance > 0) {
+          this.scrolled = true;
+          this.shadow.classList.add('visible');
         }
 
         if (this.small !== newState) {
