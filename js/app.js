@@ -8,6 +8,7 @@ const DELETE_DISTANCE = 60;
 const HIDDEN_ROLES = [
   'system', 'input', 'homescreen', 'theme', 'addon', 'langpack'
 ];
+const SETTINGS_VERSION = 0;
 
 (function(exports) {
 
@@ -43,6 +44,9 @@ const HIDDEN_ROLES = [
     this.icons.addEventListener('touchcancel', this);
     navigator.mozApps.mgmt.addEventListener('install', this);
     navigator.mozApps.mgmt.addEventListener('uninstall', this);
+
+    // Restore settings
+    this.restoreSettings();
 
     // Populate apps
     var populateApps = () => {
@@ -89,6 +93,28 @@ const HIDDEN_ROLES = [
   }
 
   App.prototype = {
+    saveSettings: function() {
+      localStorage.setItem('settings', JSON.stringify({
+        version: SETTINGS_VERSION,
+        small: this.small
+      }));
+    },
+
+    restoreSettings: function() {
+      var settingsString = localStorage.getItem('settings');
+      if (!settingsString) {
+        return;
+      }
+
+      var settings = JSON.parse(settingsString);
+      if (settings.version !== SETTINGS_VERSION) {
+        return;
+      }
+
+      this.small = settings.small;
+      this.icons.classList.toggle('small', this.small);
+    },
+
     addApp: function(app, callback) {
       var manifest = app.manifest || app.updateManifest;
       if (!manifest) {
@@ -313,6 +339,7 @@ const HIDDEN_ROLES = [
           this.icons.classList.toggle('small', this.small);
           this.icons.synchronise();
           this.stopPinch();
+          this.saveSettings();
         } else if (Math.abs(distance) > PINCH_FEEDBACK_THRESHOLD) {
           this.scrollable.style.transform = 'scale(' +
             ((window.innerWidth + distance / 4) / window.innerWidth) + ')';
