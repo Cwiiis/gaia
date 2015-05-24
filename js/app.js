@@ -89,7 +89,7 @@ const HIDDEN_ROLES = [
   }
 
   App.prototype = {
-    addApp: function(app) {
+    addApp: function(app, callback) {
       var manifest = app.manifest || app.updateManifest;
       if (!manifest) {
         console.log('Skipping app with no manifest', app);
@@ -106,7 +106,7 @@ const HIDDEN_ROLES = [
         Math.max(0, APP_LOAD_STAGGER - (currentTime - this.lastAppLoad));
       this.lastAppLoad = currentTime + targetDelay;
 
-      window.setTimeout(function loadApp(app) {
+      window.setTimeout(function loadApp(app, callback) {
         var manifest = app.manifest || app.updateManifest;
         if (manifest.entry_points) {
           for (var entryPoint in manifest.entry_points) {
@@ -115,7 +115,11 @@ const HIDDEN_ROLES = [
         } else {
           this.addAppIcon(app);
         }
-      }.bind(this, app), targetDelay);
+
+        if (callback) {
+          callback();
+        }
+      }.bind(this, app, callback), targetDelay);
     },
 
     addAppIcon: function(app, entryPoint) {
@@ -323,8 +327,7 @@ const HIDDEN_ROLES = [
 
       // Add apps installed after startup
       case 'install':
-        this.addApp(e.application);
-        this.storeAppOrder();
+        this.addApp(e.application, this.storeAppOrder);
         break;
 
       // Remove apps uninstalled after startup
