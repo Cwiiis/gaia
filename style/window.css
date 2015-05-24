@@ -41,9 +41,7 @@ body {
 }
 
 .zooming #scrollable,
-.dragging #scrollable,
-.zooming gaia-container,
-.dragging gaia-container {
+.dragging #scrollable {
   overflow: hidden;
 }
 

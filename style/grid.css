@@ -1,6 +1,6 @@
 gaia-container {
   width: 100vw;
-  overflow-x: hidden;
+  overflow: hidden;
   display: flex;
   flex-flow: row wrap;
   transition: opacity 0.2s;
