@@ -1,13 +1,63 @@
 'use strict';
 
+/**
+ * The time to wait between successive app icon additions.
+ */
 const APP_LOAD_STAGGER = 0;//100;
+
+/**
+ * The distance a pinch gesture has to move before being considered for a
+ * column-layout change.
+ */
 const PINCH_DISTANCE_THRESHOLD = 150;
+
+/**
+ * The minimum distance a pinch gesture has to move before being reflected
+ * visually.
+ */
 const PINCH_FEEDBACK_THRESHOLD = 5;
+
+/**
+ * Bias to apply in the direction of a swipe when flinging the apps list.
+ * 0 means no bias, and the nearest page will be snapped to. 0.5 would mean
+ * it would always snap to the next page in the direction of the swipe, no
+ * matter how small.
+ */
+const PAGE_SWIPE_BIAS = 0.45;
+
+/**
+ * Timeout after a scroll event to initiate scroll-snapping. This is mostly
+ * to work around bug 1172541.
+ */
+const SCROLL_SNAP_TIMEOUT = 150;
+
+/**
+ * Timeout before resizing the apps grid after apps change.
+ */
+const RESIZE_TIMEOUT = 500;
+
+/**
+ * The distance at the top and bottom of the icon container that when hovering
+ * an icon in will cause scrolling.
+ */
 const AUTOSCROLL_DISTANCE = 45;
+
+/**
+ * The height of the delete-app bar at the bottom of the container when
+ * dragging a deletable app.
+ */
 const DELETE_DISTANCE = 60;
+
+/**
+ * App roles that will be skipped on the homescreen.
+ */
 const HIDDEN_ROLES = [
   'system', 'input', 'homescreen', 'theme', 'addon', 'langpack'
 ];
+
+/**
+ * Stored settings version, for use when changing/refactoring settings storage.
+ */
 const SETTINGS_VERSION = 0;
 
 (function(exports) {
@@ -24,6 +74,11 @@ const SETTINGS_VERSION = 0;
 
     // Scroll behaviour
     this.scrolled = false;
+    this.scrollSnap = { shouldSnap: false,
+                        position: 0,
+                        downwards: true,
+                        touching: false,
+                        timeout: null };
 
     // Pinch-to-zoom
     this.small = false;
@@ -230,13 +285,64 @@ const SETTINGS_VERSION = 0;
       this.handleEvent({ type: 'scroll' });
     },
 
+    snapScrollPosition: function(bias) {
+      var children = this.icons.children;
+      if (children.length < 1) {
+        return;
+      }
+
+      var iconHeight = children[0].getBoundingClientRect().height;
+      var scrollHeight = this.scrollable.clientHeight;
+      var pageHeight = Math.floor(scrollHeight / iconHeight) * iconHeight;
+      var gridHeight = Math.ceil(
+        (iconHeight * (children.length / (this.small ? 4 : 3))) / pageHeight) *
+        pageHeight;
+
+      // Make sure the grid is a multiple of the page size. Done in a timeout
+      // in case the grid shrinks
+      setTimeout(() => {
+        this.icons.style.height = gridHeight + 'px';
+      }, RESIZE_TIMEOUT);
+
+      var currentScroll = this.scrollable.scrollTop;
+      var destination = Math.min(gridHeight - scrollHeight,
+        Math.round(currentScroll / pageHeight + bias) * pageHeight);
+      if (Math.abs(destination - currentScroll) > 1) {
+        this.scrollable.scrollTo(
+          { left: 0, top: destination, behavior: 'smooth' });
+      }
+    },
+
     handleEvent: function(e) {
       switch (e.type) {
       // Display the top shadow when scrolling down
       case 'scroll':
-        if (this.scrolled !== this.scrollable.scrollTop > 0) {
-          this.scrolled = !this.scrolled;
-          this.shadow.classList.toggle('visible', this.scrolled);
+        var position = this.scrollable.scrollTop;
+        var scrolled = position > 0;
+        if (this.scrolled !== scrolled) {
+          this.scrolled = scrolled;
+          this.shadow.classList.toggle('visible', scrolled);
+        }
+
+        if (this.scrollSnap.position !== position) {
+          this.scrollSnap.downwards = position > this.scrollSnap.position;
+          this.scrollSnap.position = position;
+        }
+
+        if (this.scrollSnap.timeout) {
+          clearTimeout(this.scrollSnap.timeout);
+          this.scrollSnap.timeout = null;
+        }
+
+        if (this.scrollSnap.shouldSnap) {
+          this.scrollSnap.shouldSnap = false;
+          this.snapScrollPosition(this.scrollSnap.downwards ?
+            PAGE_SWIPE_BIAS : -PAGE_SWIPE_BIAS);
+        } else if (!this.scrollSnap.touching) {
+          this.scrollSnap.timeout = setTimeout(() => {
+            this.scrollSnap.timeout = null;
+            this.snapScrollPosition(0);
+          }, SCROLL_SNAP_TIMEOUT);
         }
         break;
 
@@ -295,6 +401,7 @@ const SETTINGS_VERSION = 0;
 
       // Pinch-to-zoom
       case 'touchstart':
+        this.scrollSnap.touching = true;
         if (e.touches.length === 2) {
           this.wasSmall = this.small;
           this.startDistance =
@@ -348,6 +455,12 @@ const SETTINGS_VERSION = 0;
 
       case 'touchend':
       case 'touchcancel':
+        if (!e.touches || e.touches.length === 0) {
+          this.scrollSnap.touching = false;
+          this.scrollSnap.shouldSnap = true;
+          this.handleEvent({ type: 'scroll' });
+        }
+
         this.stopPinch();
         break;
 
@@ -373,6 +486,7 @@ const SETTINGS_VERSION = 0;
             break;
           }
         }
+        this.handleEvent({ type: 'scroll' });
         break;
       }
     }
