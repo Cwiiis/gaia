@@ -32,6 +32,11 @@ const PAGE_SWIPE_BIAS = 0.45;
 const SCROLL_SNAP_TIMEOUT = 150;
 
 /**
+ * Time to leave for smooth scrolling to finish before un-forcing auto overflow.
+ */
+const SMOOTH_SCROLL_TIME = 500;
+
+/**
  * Timeout before resizing the apps grid after apps change.
  */
 const RESIZE_TIMEOUT = 500;
@@ -41,6 +46,12 @@ const RESIZE_TIMEOUT = 500;
  * an icon in will cause scrolling.
  */
 const AUTOSCROLL_DISTANCE = 45;
+
+/**
+ * The timeout before auto-scrolling another page when hovering at the edges
+ * of the grid.
+ */
+const AUTOSCROLL_REPEAT_TIMEOUT = 750;
 
 /**
  * The height of the delete-app bar at the bottom of the container when
@@ -84,6 +95,10 @@ const SETTINGS_VERSION = 0;
     this.small = false;
     this.wasSmall = false;
     this.pinchListening = false;
+
+    // Drag-and-drop
+    this.draggingRemovable = false;
+    this.autoScrollTimeout = null;
 
     // Signal handlers
     this.scrollable.addEventListener('scroll', this);
@@ -308,8 +323,12 @@ const SETTINGS_VERSION = 0;
       var destination = Math.min(gridHeight - scrollHeight,
         Math.round(currentScroll / pageHeight + bias) * pageHeight);
       if (Math.abs(destination - currentScroll) > 1) {
+        this.scrollable.style.overflow = 'auto';
         this.scrollable.scrollTo(
           { left: 0, top: destination, behavior: 'smooth' });
+        setTimeout(() => {
+          this.scrollable.style.overflow = '';
+        }, SMOOTH_SCROLL_TIME);
       }
     },
 
@@ -354,7 +373,9 @@ const SETTINGS_VERSION = 0;
       // Disable scrolling during dragging, and display app-uninstall bar
       case 'drag-start':
         document.body.classList.add('dragging');
-        if (e.detail.target.firstElementChild.app.removable) {
+        this.draggingRemovable =
+          e.detail.target.firstElementChild.app.removable;
+        if (this.draggingRemovable) {
           this.uninstall.classList.add('dragging');
         }
         break;
@@ -387,13 +408,29 @@ const SETTINGS_VERSION = 0;
       // Handle app-uninstall bar highlight and auto-scroll
       case 'drag-move':
         var inDelete = false;
-        var inAutoscroll = false;
 
-        if (e.detail.clientY > window.innerHeight - DELETE_DISTANCE) {
+        if (this.draggingRemovable &&
+            e.detail.clientY > window.innerHeight - DELETE_DISTANCE) {
           inDelete = true;
-        } else if (e.detail.clientY >
-                   window.innerHeight - AUTOSCROLL_DISTANCE) {
-          inAutoscroll = true;
+        } else if (this.autoScrollTimeout === null) {
+          if (e.detail.clientY > window.innerHeight - DELETE_DISTANCE -
+                                                      AUTOSCROLL_DISTANCE) {
+            // Scroll down a page
+            console.log('Scrolling down a page');
+            this.snapScrollPosition(1);
+
+            this.autoScrollTimeout = setTimeout(() => {
+              this.autoScrollTimeout = null;
+            }, AUTOSCROLL_REPEAT_TIMEOUT);
+          } else if (e.detail.clientY < AUTOSCROLL_DISTANCE) {
+            // Scroll up a page
+            console.log('Scrolling up a page');
+            this.snapScrollPosition(-1);
+
+            this.autoScrollTimeout = setTimeout(() => {
+              this.autoScrollTimeout = null;
+            }, AUTOSCROLL_REPEAT_TIMEOUT);
+          }
         }
 
         this.uninstall.classList.toggle('active', inDelete);
