@@ -48,10 +48,10 @@ const RESIZE_TIMEOUT = 500;
 const AUTOSCROLL_DISTANCE = 45;
 
 /**
- * The timeout before auto-scrolling another page when hovering at the edges
+ * The timeout before auto-scrolling a page when hovering at the edges
  * of the grid.
  */
-const AUTOSCROLL_REPEAT_TIMEOUT = 750;
+const AUTOSCROLL_DELAY = 750;
 
 /**
  * The height of the delete-app bar at the bottom of the container when
@@ -408,29 +408,33 @@ const SETTINGS_VERSION = 0;
       // Handle app-uninstall bar highlight and auto-scroll
       case 'drag-move':
         var inDelete = false;
+        var inAutoscroll = false;
 
         if (this.draggingRemovable &&
             e.detail.clientY > window.innerHeight - DELETE_DISTANCE) {
           inDelete = true;
-        } else if (this.autoScrollTimeout === null) {
-          if (e.detail.clientY > window.innerHeight - DELETE_DISTANCE -
-                                                      AUTOSCROLL_DISTANCE) {
-            // Scroll down a page
-            console.log('Scrolling down a page');
-            this.snapScrollPosition(1);
-
+        } else if (e.detail.clientY >
+                   window.innerHeight - DELETE_DISTANCE - AUTOSCROLL_DISTANCE) {
+          inAutoscroll = true;
+          if (this.autoScrollTimeout === null) {
             this.autoScrollTimeout = setTimeout(() => {
               this.autoScrollTimeout = null;
-            }, AUTOSCROLL_REPEAT_TIMEOUT);
-          } else if (e.detail.clientY < AUTOSCROLL_DISTANCE) {
-            // Scroll up a page
-            console.log('Scrolling up a page');
-            this.snapScrollPosition(-1);
-
-            this.autoScrollTimeout = setTimeout(() => {
-              this.autoScrollTimeout = null;
-            }, AUTOSCROLL_REPEAT_TIMEOUT);
+              this.snapScrollPosition(1);
+            }, AUTOSCROLL_DELAY);
           }
+        } else if (e.detail.clientY < AUTOSCROLL_DISTANCE) {
+          inAutoscroll = true;
+          if (this.autoScrollTimeout === null) {
+            this.autoScrollTimeout = setTimeout(() => {
+              this.autoScrollTimeout = null;
+              this.snapScrollPosition(-1);
+            }, AUTOSCROLL_DELAY);
+          }
+        }
+
+        if (!inAutoscroll && this.autoScrollTimeout !== null) {
+          clearTimeout(this.autoScrollTimeout);
+          this.autoScrollTimeout = null;
         }
 
         this.uninstall.classList.toggle('active', inDelete);
