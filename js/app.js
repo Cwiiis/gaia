@@ -306,12 +306,12 @@ const SETTINGS_VERSION = 0;
         return;
       }
 
-      var iconHeight = children[0].getBoundingClientRect().height;
+      var iconHeight = Math.round(children[0].getBoundingClientRect().height);
       var scrollHeight = this.scrollable.clientHeight;
       var pageHeight = Math.floor(scrollHeight / iconHeight) * iconHeight;
-      var gridHeight = Math.ceil(
-        (iconHeight * (children.length / (this.small ? 4 : 3))) / pageHeight) *
-        pageHeight;
+      var gridHeight = (Math.ceil((iconHeight *
+        Math.ceil(children.length / (this.small ? 4 : 3))) / pageHeight) *
+        pageHeight) + (scrollHeight - pageHeight);
 
       // Make sure the grid is a multiple of the page size. Done in a timeout
       // in case the grid shrinks
