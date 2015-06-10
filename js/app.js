@@ -1,11 +1,6 @@
 'use strict';
 
 /**
- * The time to wait between successive app icon additions.
- */
-const APP_LOAD_STAGGER = 0;//100;
-
-/**
  * The distance a pinch gesture has to move before being considered for a
  * column-layout change.
  */
@@ -80,9 +75,6 @@ const SETTINGS_VERSION = 0;
     this.icons = document.getElementById('apps');
     this.uninstall = document.getElementById('uninstall');
 
-    // App-loading
-    this.lastAppLoad = Date.now();
-
     // Scroll behaviour
     this.scrolled = false;
     this.scrollSnap = { shouldSnap: false,
@@ -126,18 +118,16 @@ const SETTINGS_VERSION = 0;
           this.addApp(app);
         }
 
-        setTimeout(() => {
-          for (var data of this.startupMetadata) {
-            console.log('Removing unknown app metadata entry', data.id);
-            this.metadata.remove(data.id).then(
-              () => {},
-              (e) => {
-                console.error('Error removing unknown app metadata entry', e);
-              });
-          }
-          this.startupMetadata = [];
-          this.storeAppOrder();
-        }, Math.max(0, (this.lastAppLoad - Date.now()) + APP_LOAD_STAGGER));
+        for (var data of this.startupMetadata) {
+          console.log('Removing unknown app metadata entry', data.id);
+          this.metadata.remove(data.id).then(
+            () => {},
+            (e) => {
+              console.error('Error removing unknown app metadata entry', e);
+            });
+        }
+        this.startupMetadata = [];
+        this.storeAppOrder();
       };
       request.onerror = (e) => {
         console.error("Error calling getAll: " + request.error.name);
@@ -197,25 +187,17 @@ const SETTINGS_VERSION = 0;
         return;
       }
 
-      var currentTime = Date.now();
-      var targetDelay =
-        Math.max(0, APP_LOAD_STAGGER - (currentTime - this.lastAppLoad));
-      this.lastAppLoad = currentTime + targetDelay;
-
-      window.setTimeout(function loadApp(app, callback) {
-        var manifest = app.manifest || app.updateManifest;
-        if (manifest.entry_points) {
-          for (var entryPoint in manifest.entry_points) {
-            this.addAppIcon(app, entryPoint);
-          }
-        } else {
-          this.addAppIcon(app);
+      if (manifest.entry_points) {
+        for (var entryPoint in manifest.entry_points) {
+          this.addAppIcon(app, entryPoint);
         }
+      } else {
+        this.addAppIcon(app);
+      }
 
-        if (callback) {
-          callback();
-        }
-      }.bind(this, app, callback), targetDelay);
+      if (callback) {
+        callback();
+      }
     },
 
     addAppIcon: function(app, entryPoint) {
