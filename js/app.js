@@ -480,6 +480,7 @@ const SETTINGS_VERSION = 0;
 
         if (this.small !== newState) {
           this.small = newState;
+          this.icons.style.height = '';
           this.icons.classList.toggle('small', this.small);
           this.icons.synchronise();
           this.stopPinch();
