@@ -3,6 +3,7 @@ gaia-container {
   overflow: hidden;
   display: flex;
   flex-flow: row wrap;
+  align-content: flex-start;
   transition: opacity 0.2s;
   box-sizing: padding-box;
   padding: 1.5vw;
