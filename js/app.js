@@ -77,11 +77,6 @@ const SETTINGS_VERSION = 0;
 
     // Scroll behaviour
     this.scrolled = false;
-    this.scrollSnap = { shouldSnap: false,
-                        position: 0,
-                        downwards: true,
-                        touching: false,
-                        timeout: null };
 
     // Pinch-to-zoom
     this.small = false;
@@ -128,6 +123,7 @@ const SETTINGS_VERSION = 0;
         }
         this.startupMetadata = [];
         this.storeAppOrder();
+        this.snapScrollPosition(0);
       };
       request.onerror = (e) => {
         console.error("Error calling getAll: " + request.error.name);
@@ -295,6 +291,9 @@ const SETTINGS_VERSION = 0;
         Math.ceil(children.length / (this.small ? 4 : 3))) / pageHeight) *
         pageHeight) + (scrollHeight - pageHeight);
 
+      // Reset scroll-snap points
+      this.scrollable.style.scrollSnapPointsY = 'repeat(' + pageHeight + 'px)';
+
       // Make sure the grid is a multiple of the page size. Done in a timeout
       // in case the grid shrinks
       setTimeout(() => {
@@ -323,27 +322,6 @@ const SETTINGS_VERSION = 0;
         if (this.scrolled !== scrolled) {
           this.scrolled = scrolled;
           this.shadow.classList.toggle('visible', scrolled);
-        }
-
-        if (this.scrollSnap.position !== position) {
-          this.scrollSnap.downwards = position > this.scrollSnap.position;
-          this.scrollSnap.position = position;
-        }
-
-        if (this.scrollSnap.timeout) {
-          clearTimeout(this.scrollSnap.timeout);
-          this.scrollSnap.timeout = null;
-        }
-
-        if (this.scrollSnap.shouldSnap) {
-          this.scrollSnap.shouldSnap = false;
-          this.snapScrollPosition(this.scrollSnap.downwards ?
-            PAGE_SWIPE_BIAS : -PAGE_SWIPE_BIAS);
-        } else if (!this.scrollSnap.touching) {
-          this.scrollSnap.timeout = setTimeout(() => {
-            this.scrollSnap.timeout = null;
-            this.snapScrollPosition(0);
-          }, SCROLL_SNAP_TIMEOUT);
         }
         break;
 
@@ -424,7 +402,6 @@ const SETTINGS_VERSION = 0;
 
       // Pinch-to-zoom
       case 'touchstart':
-        this.scrollSnap.touching = true;
         if (e.touches.length === 2) {
           this.wasSmall = this.small;
           this.startDistance =
@@ -480,8 +457,6 @@ const SETTINGS_VERSION = 0;
       case 'touchend':
       case 'touchcancel':
         if (!e.touches || e.touches.length === 0) {
-          this.scrollSnap.touching = false;
-          this.scrollSnap.shouldSnap = true;
           this.handleEvent({ type: 'scroll' });
         }
 
@@ -492,6 +467,7 @@ const SETTINGS_VERSION = 0;
         if (e.target === this.scrollable) {
           this.scrollable.removeEventListener('transitionend', this);
           document.body.classList.remove('zooming');
+          this.snapScrollPosition(0);
         }
         break;
 
