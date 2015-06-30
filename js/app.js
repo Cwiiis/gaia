@@ -13,20 +13,6 @@ const PINCH_DISTANCE_THRESHOLD = 150;
 const PINCH_FEEDBACK_THRESHOLD = 5;
 
 /**
- * Bias to apply in the direction of a swipe when flinging the apps list.
- * 0 means no bias, and the nearest page will be snapped to. 0.5 would mean
- * it would always snap to the next page in the direction of the swipe, no
- * matter how small.
- */
-const PAGE_SWIPE_BIAS = 0.45;
-
-/**
- * Timeout after a scroll event to initiate scroll-snapping. This is mostly
- * to work around bug 1172541.
- */
-const SCROLL_SNAP_TIMEOUT = 150;
-
-/**
  * Time to leave for smooth scrolling to finish before un-forcing auto overflow.
  */
 const SMOOTH_SCROLL_TIME = 500;
