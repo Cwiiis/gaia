@@ -283,7 +283,7 @@ const SETTINGS_VERSION = 0;
       // Make sure the grid is a multiple of the page size. Done in a timeout
       // in case the grid shrinks
       setTimeout(() => {
-        this.icons.style.height = gridHeight + 'px';
+        this.icons.style.height = (gridHeight + 1) + 'px';
       }, RESIZE_TIMEOUT);
 
       var currentScroll = this.scrollable.scrollTop;
