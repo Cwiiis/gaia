@@ -118,20 +118,31 @@ const SETTINGS_VERSION = 0;
 
     this.startupMetadata = [];
     this.metadata = new HomeMetadata();
-    this.metadata.init().then(() => {
-      this.metadata.get().then((results) => {
-        this.startupMetadata = results;
-        populateApps();
-      },
-      (e) => {
-        console.error('Failed to retrieve metadata entries', e);
-        populateApps();
-      });
-    },
-    (e) => {
-      console.error('Failed to initialise metadata db', e);
-      populateApps();
-    });
+    this.bookmarks = new Bookmarks();
+    Promise.all([
+      new Promise((resolve, reject) => {
+        this.metadata.init().then(() => {
+          this.metadata.get().then((results) => {
+            this.startupMetadata = results;
+            resolve();
+          },
+          (e) => {
+            console.error('Failed to retrieve metadata entries', e);
+            resolve();
+          });
+        },
+        (e) => {
+          console.error('Failed to initialise metadata db', e);
+          resolve();
+        });
+      }),
+      new Promise((resolve, reject) => {
+        this.bookmarks.init().then(resolve, (e) => {
+          console.error('Error initialising bookmarks', e);
+          resolve();
+        });
+      })
+    ]).then(populateApps);
   }
 
   App.prototype = {

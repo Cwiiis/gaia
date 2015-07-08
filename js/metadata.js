@@ -1,11 +1,10 @@
 'use strict';
 
-const DB_NAME = 'home-metadata';
-const DB_ORDER_STORE = 'order';
-const DB_ICON_STORE = 'icon';
-const DB_VERSION = 1;
-
 (function(exports) {
+  const DB_NAME = 'home-metadata';
+  const DB_ORDER_STORE = 'order';
+  const DB_ICON_STORE = 'icon';
+  const DB_VERSION = 1;
 
   function HomeMetadata() {}
 

@@ -15,5 +15,11 @@
     "homescreen-webapps-manage":{},
     "experimental-webcomponents":{}
   },
+  "datastores-access": {
+    "bookmarks_store": {
+      "readonly": true,
+      "description": "View bookmarks"
+    }
+  },
   "orientation": "default"
 }
