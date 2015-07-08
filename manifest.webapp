@@ -12,7 +12,8 @@
     "themeable":{},
     "mobileconnection":{},
     "open-remote-window":{},
-    "homescreen-webapps-manage":{}
+    "homescreen-webapps-manage":{},
+    "experimental-webcomponents":{}
   },
   "orientation": "default"
 }
