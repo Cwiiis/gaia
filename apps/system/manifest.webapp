@@ -47,7 +47,8 @@
     "downloads": {},
     "systemXHR": {},
     "feature-detection": {},
-    "before-after-keyboard-event": {}
+    "before-after-keyboard-event": {},
+    "tcp-socket": {}
   },
   "locales": {
     "ar": {
