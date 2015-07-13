@@ -93,12 +93,32 @@ const SETTINGS_VERSION = 0;
 
     // Populate apps
     var populateApps = () => {
-      var request = navigator.mozApps.mgmt.getAll();
-      request.onsuccess = (e) => {
-        for (var app of request.result) {
-          this.addApp(app);
-        }
-
+      Promise.all([
+        new Promise((resolve, reject) => {
+          var request = navigator.mozApps.mgmt.getAll();
+          request.onsuccess = (e) => {
+            for (var app of request.result) {
+              this.addApp(app);
+            }
+            resolve();
+          };
+          request.onerror = (e) => {
+            console.error("Error calling getAll: " + request.error.name);
+            resolve();
+          };
+        }),
+        new Promise((resolve, reject) => {
+          this.bookmarks.getAll().then((bookmarks) => {
+            for (var bookmark of bookmarks) {
+              this.addAppIcon(bookmark.data);
+            }
+            resolve();
+          }, (error) => {
+            console.error('Error getting bookmarks', error);
+            resolve();
+          });
+        })
+      ]).then(() => {
         for (var data of this.startupMetadata) {
           console.log('Removing unknown app metadata entry', data.id);
           this.metadata.remove(data.id).then(
@@ -110,10 +130,7 @@ const SETTINGS_VERSION = 0;
         this.startupMetadata = [];
         this.storeAppOrder();
         this.snapScrollPosition(0);
-      };
-      request.onerror = (e) => {
-        console.error("Error calling getAll: " + request.error.name);
-      };
+      });
     };
 
     this.startupMetadata = [];
@@ -137,7 +154,10 @@ const SETTINGS_VERSION = 0;
         });
       }),
       new Promise((resolve, reject) => {
-        this.bookmarks.init().then(resolve, (e) => {
+        this.bookmarks.init().then(() => {
+          // TODO: Hook up to bookmark signals
+          resolve();
+        }, (e) => {
           console.error('Error initialising bookmarks', e);
           resolve();
         });
@@ -193,22 +213,18 @@ const SETTINGS_VERSION = 0;
       }
     },
 
-    addAppIcon: function(app, entryPoint) {
-      var id = app.manifestURL + '/' + (entryPoint ? entryPoint : '');
-      var entry = this.startupMetadata.findIndex((element) => {
-        return element.id === id;
-      });
+    addIconContainer: function(entry) {
       var container = document.createElement('div');
       container.classList.add('icon-container');
+      container.order = -1;
 
-      // Try to insert the app in the right order
+      // Try to insert the container in the right order
       if (entry !== -1) {
-        var order = this.startupMetadata[entry].order || 0;
-        container.order = order;
+        container.order = this.startupMetadata[entry].order;
         var children = this.icons.children;
         for (var i = 0, iLen = children.length; i < iLen; i++) {
           var child = children[i];
-          if (!child.order || child.order < order) {
+          if (child.order !== -1 && child.order < container.order) {
             continue;
           }
           this.icons.insertBefore(container, child);
@@ -220,12 +236,33 @@ const SETTINGS_VERSION = 0;
         this.icons.appendChild(container);
       }
 
+      return container;
+    },
+
+    addAppIcon: function(appOrBookmark, entryPoint) {
+      var id;
+      if (appOrBookmark.manifestURL) {
+        id = appOrBookmark.manifestURL + '/' + (entryPoint ? entryPoint : '');
+      } else {
+        id = appOrBookmark.id;
+      }
+
+      var entry = this.startupMetadata.findIndex((element) => {
+        return element.id === id;
+      });
+      var container = this.addIconContainer(entry);
+
       var icon = document.createElement('gaia-app-icon');
       container.appendChild(icon);
       if (entryPoint) {
         icon.entryPoint = entryPoint;
       }
-      icon.app = app;
+
+      if (appOrBookmark.manifestURL) {
+        icon.app = appOrBookmark;
+      } else {
+        icon.bookmark = appOrBookmark;
+      }
 
       // Load the cached icon
       if (entry !== -1) {
@@ -233,18 +270,18 @@ const SETTINGS_VERSION = 0;
         this.startupMetadata.splice(entry, 1);
       }
 
-      // Save the refreshed app icon
+      // Save the refreshed icon
       icon.addEventListener('icon-loaded', function(icon, id) {
         icon.icon.then((blob) => {
           this.metadata.set([{ id: id, icon: blob }]).then(
             () => {},
             (e) => {
-              console.error('Error saving app icon', e);
+              console.error('Error saving icon', e);
             });
         });
       }.bind(this, icon, id));
 
-      // Refresh app data (sets app title and refreshes app icon)
+      // Refresh icon data (sets title and refreshes icon)
       icon.refresh();
     },
 
@@ -253,7 +290,12 @@ const SETTINGS_VERSION = 0;
       var children = this.icons.children;
       for (var i = 0, iLen = children.length; i < iLen; i++) {
         var appIcon = children[i].firstElementChild;
-        var id = appIcon.app.manifestURL + '/' + appIcon.entryPoint;
+        var id;
+        if (appIcon.app) {
+          id = appIcon.app.manifestURL + '/' + appIcon.entryPoint;
+        } else {
+          id = appIcon.bookmark.id;
+        }
         storedOrders.push({ id: id, order: i });
       }
       this.metadata.set(storedOrders).then(

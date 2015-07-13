@@ -13,7 +13,8 @@
     "mobileconnection":{},
     "open-remote-window":{},
     "homescreen-webapps-manage":{},
-    "experimental-webcomponents":{}
+    "experimental-webcomponents":{},
+    "systemXHR": {}
   },
   "datastores-access": {
     "bookmarks_store": {
