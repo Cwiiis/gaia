@@ -262,7 +262,7 @@ const SETTINGS_VERSION = 0;
       container.order = -1;
 
       // Try to insert the container in the right order
-      if (entry !== -1) {
+      if (entry !== -1 && this.startupMetadata[entry].order >= 0) {
         container.order = this.startupMetadata[entry].order;
         var children = this.icons.children;
         for (var i = 0, iLen = children.length; i < iLen; i++) {
@@ -438,6 +438,11 @@ const SETTINGS_VERSION = 0;
         if (icon.app && icon.app.removable) {
           e.preventDefault();
           navigator.mozApps.mgmt.uninstall(icon.app);
+        } else if (icon.bookmark) {
+          var activity = new MozActivity({
+            name: 'remove-bookmark',
+            data: { type: 'url', url: icon.bookmark.id }
+          });
         }
 
         break;

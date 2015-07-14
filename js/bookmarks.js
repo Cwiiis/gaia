@@ -92,7 +92,7 @@
               break;
 
             case 'remove':
-              promises.push(self.remove(task.data.id));
+              promises.push(self.remove(task.id));
               break;
 
             case 'clear':
