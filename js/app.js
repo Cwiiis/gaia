@@ -155,7 +155,50 @@ const SETTINGS_VERSION = 0;
       }),
       new Promise((resolve, reject) => {
         this.bookmarks.init().then(() => {
-          // TODO: Hook up to bookmark signals
+          document.addEventListener('bookmark-added', (e) => {
+            var id = e.detail.id;
+            this.bookmarks.get(id).then((bookmark) => {
+              this.addAppIcon(bookmark.data);
+            });
+          });
+
+          document.addEventListener('bookmark-changed', (e) => {
+            var id = e.detail.id;
+            this.bookmarks.get(id).then((bookmark) => {
+              for (var child of this.icons.children) {
+                var icon = child.firstElementChild;
+                if (icon.bookmark && icon.bookmark.id === id) {
+                  icon.bookmark = bookmark.data;
+                  icon.refresh();
+                  return;
+                }
+              }
+            });
+          });
+
+          document.addEventListener('bookmark-removed', (e) => {
+            var id = e.detail.id;
+            for (var child of this.icons.children) {
+              var icon = child.firstElementChild;
+              if (icon.bookmark && icon.bookmark.id === id) {
+                this.icons.removeChild(child);
+                this.storeAppOrder();
+                return;
+              }
+            }
+          });
+
+          document.addEventListener('bookmarks-cleared', () => {
+            for (var child of this.icons.children) {
+              var icon = child.firstElementChild;
+              if (icon.bookmark) {
+                this.icons.removeChild(child);
+                return;
+              }
+            }
+            this.storeAppOrder();
+          });
+
           resolve();
         }, (e) => {
           console.error('Error initialising bookmarks', e);
@@ -518,8 +561,8 @@ const SETTINGS_VERSION = 0;
       // Remove apps uninstalled after startup
       case 'uninstall':
         for (var child of this.icons.children) {
-          if (child.firstElementChild.app.manifestURL ===
-              e.application.manifestURL) {
+          var icon = child.firstElementChild;
+          if (icon.app && icon.app.manifestURL === e.application.manifestURL) {
             this.icons.removeChild(child);
             this.storeAppOrder();
             break;

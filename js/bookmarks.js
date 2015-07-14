@@ -153,25 +153,21 @@
       this.synchronise().then(() => {
         switch(e.operation) {
           case 'updated':
-            console.log('Bookmark updated', e.id);
             document.dispatchEvent(new CustomEvent('bookmark-changed',
-                                                   { detail: e.id }));
+                                                   { detail: { id: e.id }}));
             break;
 
           case 'added':
-            console.log('Bookmark added', e.id);
             document.dispatchEvent(new CustomEvent('bookmark-added',
-                                                   { detail: e.id }));
+                                                   { detail: { id: e.id }}));
             break;
 
           case 'removed':
-            console.log('Bookmark removed', e.id);
             document.dispatchEvent(new CustomEvent('bookmark-removed',
-                                                   { detail: e.id }));
+                                                   { detail: { id: e.id }}));
             break;
 
           case 'cleared':
-            console.log('Bookmarks cleared');
             document.dispatchEvent(new CustomEvent('bookmarks-cleared'));
             break;
         }
@@ -187,7 +183,7 @@
         txn.onerror = reject;
         txn.objectStore(DB_STORE).get(id).onsuccess =
           (event) => {
-            resolve(event.result);
+            resolve(event.target.result);
           };
       });
     },
