@@ -234,12 +234,12 @@ const SETTINGS_VERSION = 0;
     addApp: function(app, callback) {
       var manifest = app.manifest || app.updateManifest;
       if (!manifest) {
-        console.log('Skipping app with no manifest', app);
+        //console.log('Skipping app with no manifest', app);
         return;
       }
 
       if (manifest.role && HIDDEN_ROLES.indexOf(manifest.role) !== -1) {
-        console.log('Skipping app with role \'' + manifest.role + '\'', app);
+        //console.log('Skipping app with role \'' + manifest.role + '\'', app);
         return;
       }
 
@@ -415,8 +415,8 @@ const SETTINGS_VERSION = 0;
       // Disable scrolling during dragging, and display app-uninstall bar
       case 'drag-start':
         document.body.classList.add('dragging');
-        this.draggingRemovable =
-          e.detail.target.firstElementChild.app.removable;
+        var icon = e.detail.target.firstElementChild;
+        this.draggingRemovable = icon.bookmark || icon.app.removable;
         if (this.draggingRemovable) {
           this.uninstall.classList.add('dragging');
         }
@@ -433,13 +433,13 @@ const SETTINGS_VERSION = 0;
           return;
         }
 
-        var app = e.detail.target.firstElementChild.app;
-        if (!app.removable) {
-          return;
+        var icon = e.detail.target.firstElementChild;
+
+        if (icon.app && icon.app.removable) {
+          e.preventDefault();
+          navigator.mozApps.mgmt.uninstall(icon.app);
         }
 
-        e.preventDefault();
-        navigator.mozApps.mgmt.uninstall(app);
         break;
 
       // Save the app grid after rearrangement
