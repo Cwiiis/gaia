@@ -181,8 +181,8 @@ const SETTINGS_VERSION = 0;
             for (var child of this.icons.children) {
               var icon = child.firstElementChild;
               if (icon.bookmark && icon.bookmark.id === id) {
-                this.icons.removeChild(child);
-                this.storeAppOrder();
+                this.icons.removeChild(child, this.storeAppOrder.bind(this));
+                this.metadata.remove(id);
                 return;
               }
             }
@@ -565,15 +565,25 @@ const SETTINGS_VERSION = 0;
 
       // Remove apps uninstalled after startup
       case 'uninstall':
+        var callback = this.storeAppOrder.bind(this);
         for (var child of this.icons.children) {
           var icon = child.firstElementChild;
           if (icon.app && icon.app.manifestURL === e.application.manifestURL) {
-            this.icons.removeChild(child);
-            this.storeAppOrder();
-            break;
+            var id = e.application.manifestURL + '/' +
+              (icon.entryPoint ? icon.entryPoint : '');
+            this.metadata.remove(id).then(() => {},
+              (e) => {
+                console.error('Error removing uninstalled app', e);
+              });
+
+            this.icons.removeChild(child, callback);
+
+            // We only want to store the app order once, so clear the callback
+            callback = null;
           }
         }
-        this.handleEvent({ type: 'scroll' });
+
+        this.snapScrollPosition(0);
         break;
       }
     }
