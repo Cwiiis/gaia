@@ -124,7 +124,7 @@ gaia-container.small > .gaia-container-child.dragging > .icon-container > gaia-a
   width: 50%;
 }
 
-#uninstall:after {
+#uninstall::after {
   display: block;
   content: '';
   width: 100%;
