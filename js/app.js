@@ -431,7 +431,7 @@ const SETTINGS_VERSION = 0;
       case 'drag-finish':
         document.body.classList.remove('dragging');
         this.bottombar.classList.remove('active');
-        this.editable.classList.remove('active');
+        this.edit.classList.remove('active');
         this.uninstall.classList.remove('active');
         break;
 
