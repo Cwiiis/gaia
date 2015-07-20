@@ -59,7 +59,9 @@ const SETTINGS_VERSION = 0;
     this.shadow = document.getElementById('shadow');
     this.scrollable = document.getElementById('scrollable');
     this.icons = document.getElementById('apps');
+    this.bottombar = document.getElementById('bottombar');
     this.uninstall = document.getElementById('uninstall');
+    this.edit = document.getElementById('edit');
 
     // Scroll behaviour
     this.scrolled = false;
@@ -412,19 +414,25 @@ const SETTINGS_VERSION = 0;
         e.detail.target.firstElementChild.launch();
         break;
 
-      // Disable scrolling during dragging, and display app-uninstall bar
+      // Disable scrolling during dragging, and display bottom-bar
       case 'drag-start':
         document.body.classList.add('dragging');
         var icon = e.detail.target.firstElementChild;
-        this.draggingRemovable = icon.bookmark || icon.app.removable;
-        if (this.draggingRemovable) {
-          this.uninstall.classList.add('dragging');
+
+        this.draggingEditable = !!icon.bookmark;
+        this.draggingRemovable = this.draggingEditable || !!icon.app.removable;
+        this.bottombar.classList.toggle('editable', this.draggingEditable);
+        this.bottombar.classList.toggle('removable', this.draggingRemovable);
+        if (this.draggingEditable || this.draggingRemovable) {
+          this.bottombar.classList.add('active');
         }
         break;
 
       case 'drag-finish':
         document.body.classList.remove('dragging');
-        this.uninstall.classList.remove('dragging');
+        this.bottombar.classList.remove('active');
+        this.editable.classList.remove('active');
+        this.uninstall.classList.remove('active');
         break;
 
       // Handle app uninstallation
@@ -439,10 +447,17 @@ const SETTINGS_VERSION = 0;
           e.preventDefault();
           navigator.mozApps.mgmt.uninstall(icon.app);
         } else if (icon.bookmark) {
-          var activity = new MozActivity({
-            name: 'remove-bookmark',
-            data: { type: 'url', url: icon.bookmark.id }
-          });
+          if (e.detail.clientX >= window.innerWidth / 2) {
+            new MozActivity({
+              name: 'save-bookmark',
+              data: { type: 'url', url: icon.bookmark.id }
+            });
+          } else {
+            new MozActivity({
+              name: 'remove-bookmark',
+              data: { type: 'url', url: icon.bookmark.id }
+            });
+          }
         }
 
         break;
@@ -455,11 +470,17 @@ const SETTINGS_VERSION = 0;
       // Handle app-uninstall bar highlight and auto-scroll
       case 'drag-move':
         var inDelete = false;
+        var inEdit = false;
         var inAutoscroll = false;
 
         if (this.draggingRemovable &&
             e.detail.clientY > window.innerHeight - DELETE_DISTANCE) {
-          inDelete = true;
+          if (this.draggingEditable &&
+              e.detail.clientX >= window.innerWidth / 2) {
+            inEdit = true;
+          } else {
+            inDelete = true;
+          }
         } else if (e.detail.clientY >
                    window.innerHeight - DELETE_DISTANCE - AUTOSCROLL_DISTANCE) {
           inAutoscroll = true;
@@ -485,6 +506,7 @@ const SETTINGS_VERSION = 0;
         }
 
         this.uninstall.classList.toggle('active', inDelete);
+        this.edit.classList.toggle('active', inEdit);
         break;
 
       // Pinch-to-zoom
