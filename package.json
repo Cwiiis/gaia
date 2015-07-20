@@ -5,7 +5,8 @@
   "main": "script.js",
   "scripts": {
     "test": "./node_modules/karma/bin/karma start test/karma.conf.js --single-run",
-    "test-dev": "./node_modules/karma/bin/karma start test/karma.conf.js"
+    "test-dev": "./node_modules/karma/bin/karma start test/karma.conf.js",
+    "icons": "inkscape -e icons/128.png -w 128 icons/icon.svg;inkscape -e icons/512.png -w 512 icons/icon.svg;inkscape -e icons/60.png -w 60 icons/icon.svg;inkscape -e icons/16.png -w 16 icons/icon.svg;inkscape -e icons/32.png -w 32 icons/icon.svg;inkscape -e icons/48.png -w 48 icons/icon.svg;inkscape -e icons/64.png -w 64 icons/icon.svg;inkscape -e icons/90.png -w 90 icons/icon.svg;inkscape -e icons/256.png -w 256 icons/icon.svg"
   },
   "repository": {
     "type": "git",
