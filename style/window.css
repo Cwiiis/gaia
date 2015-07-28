@@ -42,8 +42,7 @@ body {
   will-change: transform;
 }
 
-.zooming #scrollable,
-.dragging #scrollable {
+.zooming #scrollable {
   overflow: hidden;
 }
 

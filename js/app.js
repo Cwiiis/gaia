@@ -388,12 +388,9 @@ const SETTINGS_VERSION = 0;
       var destination = Math.min(gridHeight - scrollHeight,
         Math.round(currentScroll / pageHeight + bias) * pageHeight);
       if (Math.abs(destination - currentScroll) > 1) {
-        this.scrollable.style.overflow = 'auto';
+        this.scrollable.style.overflow = '';
         this.scrollable.scrollTo(
           { left: 0, top: destination, behavior: 'smooth' });
-        setTimeout(() => {
-          this.scrollable.style.overflow = '';
-        }, SMOOTH_SCROLL_TIME);
       }
     },
 
@@ -417,6 +414,7 @@ const SETTINGS_VERSION = 0;
       // Disable scrolling during dragging, and display bottom-bar
       case 'drag-start':
         document.body.classList.add('dragging');
+        this.scrollable.style.overflow = 'hidden';
         var icon = e.detail.target.firstElementChild;
 
         this.draggingEditable = !!icon.bookmark;
@@ -430,6 +428,7 @@ const SETTINGS_VERSION = 0;
 
       case 'drag-finish':
         document.body.classList.remove('dragging');
+        this.scrollable.style.overflow = '';
         this.bottombar.classList.remove('active');
         this.edit.classList.remove('active');
         this.uninstall.classList.remove('active');
