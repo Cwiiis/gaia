@@ -4,3 +4,6 @@
 [submodule "gaia-container"]
 	path = gaia-container
 	url = https://gitlab.com/Cwiiis/gaia-container.git
+[submodule "gaia-components"]
+	path = gaia-components
+	url = https://github.com/gaia-components/gaia-components.git

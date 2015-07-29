@@ -13,14 +13,15 @@ const PINCH_DISTANCE_THRESHOLD = 150;
 const PINCH_FEEDBACK_THRESHOLD = 5;
 
 /**
- * Time to leave for smooth scrolling to finish before un-forcing auto overflow.
- */
-const SMOOTH_SCROLL_TIME = 500;
-
-/**
  * Timeout before resizing the apps grid after apps change.
  */
 const RESIZE_TIMEOUT = 500;
+
+/**
+ * Timeout before showing a dialog. Without this, the click that comes through
+ * after an activate event from gaia-container will close the dialog.
+ */
+const DIALOG_SHOW_TIMEOUT = 50;
 
 /**
  * The distance at the top and bottom of the icon container that when hovering
@@ -62,6 +63,8 @@ const SETTINGS_VERSION = 0;
     this.bottombar = document.getElementById('bottombar');
     this.uninstall = document.getElementById('uninstall');
     this.edit = document.getElementById('edit');
+    this.cancelDownload = document.getElementById('cancel-download');
+    this.resumeDownload = document.getElementById('resume-download');
 
     // Scroll behaviour
     this.scrolled = false;
@@ -394,6 +397,16 @@ const SETTINGS_VERSION = 0;
       }
     },
 
+    showDownloadDialog: function(dialog, name, callback) {
+      dialog.querySelector('.action').onclick = () => {
+        callback();
+        dialog.close();
+      };
+      dialog.querySelector('.body').
+        setAttribute('data-l10n-args', JSON.stringify({ name: name }));
+      setTimeout(() => { dialog.open(); }, DIALOG_SHOW_TIMEOUT);
+    },
+
     handleEvent: function(e) {
       switch (e.type) {
       // Display the top shadow when scrolling down
@@ -408,7 +421,28 @@ const SETTINGS_VERSION = 0;
 
       // App launching
       case 'activate':
-        e.detail.target.firstElementChild.launch();
+        var icon = e.detail.target.firstElementChild;
+
+        switch (icon.state) {
+          case 'unrecoverable':
+            navigator.mozApps.mgmt.uninstall(icon.app);
+            break;
+
+          case 'installing':
+            this.showDownloadDialog(this.cancelDownload, icon.name,
+              () => { icon.app.cancelDownload(); });
+            break;
+
+          case 'error':
+          case 'paused':
+            this.showDownloadDialog(this.resumeDownload, icon.name,
+              () => { icon.app.download(); });
+            break;
+
+          default:
+            icon.launch();
+            break;
+        }
         break;
 
       // Disable scrolling during dragging, and display bottom-bar
