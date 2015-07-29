@@ -29,7 +29,7 @@
   },
   "datastores-access": {
     "bookmarks_store": {
-      "readonly": true,
+      "readonly": false,
       "description": "View bookmarks"
     }
   },

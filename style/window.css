@@ -103,6 +103,7 @@ gaia-container.small > .gaia-container-child.dragging > .icon-container > gaia-a
   box-shadow: 0 -0.1rem 0.5rem rgba(0, 0, 0, 0.5);
   transition: transform 0.2s;
   transform: translateY(6.5rem);
+  font-size: 0;
 }
 
 #bottombar.active {

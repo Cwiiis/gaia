@@ -140,7 +140,7 @@ const SETTINGS_VERSION = 0;
 
     this.startupMetadata = [];
     this.metadata = new HomeMetadata();
-    this.bookmarks = new Bookmarks();
+    this.bookmarks = new Datastore('bookmarks_store');
     Promise.all([
       new Promise((resolve, reject) => {
         this.metadata.init().then(() => {
@@ -160,14 +160,7 @@ const SETTINGS_VERSION = 0;
       }),
       new Promise((resolve, reject) => {
         this.bookmarks.init().then(() => {
-          document.addEventListener('bookmark-added', (e) => {
-            var id = e.detail.id;
-            this.bookmarks.get(id).then((bookmark) => {
-              this.addAppIcon(bookmark.data);
-            });
-          });
-
-          document.addEventListener('bookmark-changed', (e) => {
+          document.addEventListener('bookmarks_store-set', (e) => {
             var id = e.detail.id;
             this.bookmarks.get(id).then((bookmark) => {
               for (var child of this.icons.children) {
@@ -178,10 +171,13 @@ const SETTINGS_VERSION = 0;
                   return;
                 }
               }
+              this.bookmarks.get(id).then((bookmark) => {
+                this.addAppIcon(bookmark.data);
+              });
             });
           });
 
-          document.addEventListener('bookmark-removed', (e) => {
+          document.addEventListener('bookmarks_store-removed', (e) => {
             var id = e.detail.id;
             for (var child of this.icons.children) {
               var icon = child.firstElementChild;
@@ -193,17 +189,17 @@ const SETTINGS_VERSION = 0;
             }
           });
 
-          document.addEventListener('bookmarks-cleared', () => {
+          document.addEventListener('bookmarks_store-cleared', () => {
             for (var child of this.icons.children) {
               var icon = child.firstElementChild;
               if (icon.bookmark) {
                 this.icons.removeChild(child);
-                return;
               }
             }
             this.storeAppOrder();
           });
 
+          this.bookmarks.synchronise();
           resolve();
         }, (e) => {
           console.error('Error initialising bookmarks', e);
