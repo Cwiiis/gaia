@@ -92,6 +92,7 @@ const SETTINGS_VERSION = 0;
     this.icons.addEventListener('touchcancel', this);
     navigator.mozApps.mgmt.addEventListener('install', this);
     navigator.mozApps.mgmt.addEventListener('uninstall', this);
+    window.addEventListener('hashchange', this);
 
     // Restore settings
     this.restoreSettings();
@@ -648,6 +649,12 @@ const SETTINGS_VERSION = 0;
         }
 
         this.snapScrollPosition(0);
+        break;
+
+      case 'hashchange':
+        if (!document.hidden) {
+          this.scrollable.scrollTo({ left: 0, top: 0, behavior: 'smooth' });
+        }
         break;
       }
     }
