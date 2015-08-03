@@ -467,6 +467,19 @@ const SETTINGS_VERSION = 0;
       // Handle app uninstallation
       case 'drag-end':
         if (e.detail.clientY <= window.innerHeight - DELETE_DISTANCE) {
+          // If the drop target is the container, check to see if we're
+          // dropping over the icon itself, and if we aren't, we must be
+          // dropping over the end of the container.
+          if (e.detail.dropTarget === this.icons) {
+            var rect = this.icons.getChildOffsetRect(e.detail.target);
+            var x = e.detail.clientX;
+            var y = e.detail.clientY + this.scrollable.scrollTop;
+            if (x < rect.left || y < rect.top ||
+                x >= rect.right || y >= rect.bottom) {
+              this.icons.reorderChild(e.detail.target, null,
+                                      this.storeAppOrder.bind(this));
+            }
+          }
           return;
         }
 
