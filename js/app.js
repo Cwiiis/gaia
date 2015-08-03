@@ -135,7 +135,6 @@ const SETTINGS_VERSION = 0;
         }
         this.startupMetadata = [];
         this.storeAppOrder();
-        this.snapScrollPosition(0);
       });
     };
 
@@ -174,6 +173,8 @@ const SETTINGS_VERSION = 0;
               }
               this.bookmarks.get(id).then((bookmark) => {
                 this.addAppIcon(bookmark.data);
+                this.storeAppOrder();
+                this.snapScrollPosition(0);
               });
             });
           });
@@ -233,7 +234,7 @@ const SETTINGS_VERSION = 0;
       this.icons.classList.toggle('small', this.small);
     },
 
-    addApp: function(app, callback) {
+    addApp: function(app) {
       var manifest = app.manifest || app.updateManifest;
       if (!manifest) {
         //console.log('Skipping app with no manifest', app);
@@ -251,10 +252,6 @@ const SETTINGS_VERSION = 0;
         }
       } else {
         this.addAppIcon(app);
-      }
-
-      if (callback) {
-        callback();
       }
     },
 
@@ -278,7 +275,11 @@ const SETTINGS_VERSION = 0;
       }
 
       if (!container.parentNode) {
-        this.icons.appendChild(container);
+        // If we're adding the first child, call snapScrollPosition to set
+        // the scroll-snapping parameters.
+        var callback = this.icons.firstChild ? null :
+          () => { this.snapScrollPosition(0); };
+        this.icons.appendChild(container, callback);
       }
 
       return container;
@@ -625,12 +626,16 @@ const SETTINGS_VERSION = 0;
 
       // Add apps installed after startup
       case 'install':
-        this.addApp(e.application, this.storeAppOrder);
+        this.addApp(e.application);
         break;
 
       // Remove apps uninstalled after startup
       case 'uninstall':
-        var callback = this.storeAppOrder.bind(this);
+        var callback = () => {
+          this.storeAppOrder();
+          this.snapScrollPosition(0);
+        };
+
         for (var child of this.icons.children) {
           var icon = child.firstElementChild;
           if (icon.app && icon.app.manifestURL === e.application.manifestURL) {
@@ -647,8 +652,6 @@ const SETTINGS_VERSION = 0;
             callback = null;
           }
         }
-
-        this.snapScrollPosition(0);
         break;
 
       case 'hashchange':
