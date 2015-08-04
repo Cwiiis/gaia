@@ -6,26 +6,34 @@
     <meta name="theme-color" content="transparent">
     <title>FirefoxOS Homescreen</title>
 
-    <link rel="localization" href="locales/homescreen-ng.{locale}.properties">
+    <!-- Setup environment -->
+    <script defer src="js/setup.js"></script>
 
-    <link rel="stylesheet" href="gaia-components/bower_components/base/base.css">
-    <link rel="stylesheet" href="gaia-components/bower_components/gaia-theme/gaia-theme.css">
-    <link rel="stylesheet" href="gaia-components/bower_components/gaia-fonts/style.css">
+    <!-- gaia-container -->
+    <script defer src="bower_components/gaia-container/script.js"></script>
 
-    <link rel="stylesheet" href="gaia-app-icon/external/style.css">
-    <link rel="stylesheet" href="style/window.css">
-    <link rel="stylesheet" href="style/grid.css">
+    <!-- gaia-app-icon -->
+    <link rel="stylesheet" href="bower_components/gaia-app-icon/external/style.css">
+    <script defer src="bower_components/gaia-app-icon/script.js"></script>
 
+    <!-- gaia-components -->
+    <link rel="stylesheet" href="bower_components/base/base.css">
+    <link rel="stylesheet" href="bower_components/gaia-theme/gaia-theme.css">
+    <link rel="stylesheet" href="bower_components/gaia-fonts/style.css">
+    <script defer src="bower_components/evt/index.js"></script>
+    <script defer src="bower_components/pressed/pressed.js"></script>
+    <script defer src="bower_components/gaia-component/gaia-component.js"></script>
+    <script defer src="bower_components/gaia-dialog/gaia-dialog.js"></script>
+    <script defer src="bower_components/gaia-dialog/gaia-dialog-action.js"></script>
+
+    <!-- gaia l10n -->
     <script defer src="js/external/l10n.js"></script>
 
-    <script defer src="gaia-container/script.js"></script>
-    <script defer src="gaia-app-icon/script.js"></script>
+    <!-- Local resources -->
+    <link rel="localization" href="locales/homescreen-ng.{locale}.properties">
 
-    <script defer src="gaia-components/bower_components/evt/index.js"></script>
-    <script defer src="gaia-components/bower_components/pressed/pressed.js"></script>
-    <script defer src="gaia-components/bower_components/gaia-component/gaia-component.js"></script>
-    <script defer src="gaia-components/bower_components/gaia-dialog/gaia-dialog.js"></script>
-    <script defer src="gaia-components/bower_components/gaia-dialog/gaia-dialog-action.js"></script>
+    <link rel="stylesheet" href="style/window.css">
+    <link rel="stylesheet" href="style/grid.css">
 
     <script defer src="js/metadata.js"></script>
     <script defer src="js/datastore.js"></script>
