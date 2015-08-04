@@ -65,6 +65,12 @@ const SETTINGS_VERSION = 0;
     this.edit = document.getElementById('edit');
     this.cancelDownload = document.getElementById('cancel-download');
     this.resumeDownload = document.getElementById('resume-download');
+    this.settingsDialog = document.getElementById('settings');
+
+    // XXX Working around gaia-components issue #8
+    this.cancelDownload.style.display = 'none';
+    this.resumeDownload.style.display = 'none';
+    this.settingsDialog.style.display = 'none';
 
     // Scroll behaviour
     this.scrolled = false;
@@ -79,6 +85,7 @@ const SETTINGS_VERSION = 0;
     this.autoScrollTimeout = null;
 
     // Signal handlers
+    document.body.addEventListener('contextmenu', this);
     this.scrollable.addEventListener('scroll', this);
     this.icons.addEventListener('activate', this);
     this.icons.addEventListener('drag-start', this);
@@ -395,18 +402,47 @@ const SETTINGS_VERSION = 0;
       }
     },
 
-    showDownloadDialog: function(dialog, name, callback) {
-      dialog.querySelector('.action').onclick = () => {
-        callback();
-        dialog.close();
-      };
-      dialog.querySelector('.body').
-        setAttribute('data-l10n-args', JSON.stringify({ name: name }));
+    showActionDialog: function(dialog, args, callbacks) {
+      // XXX Working around gaia-components issue #8.
+      if (dialog.style.display !== 'none') {
+        return;
+      }
+
+      var actions = dialog.getElementsByClassName('action');
+      for (var i = 0, iLen = actions.length;
+           i < iLen && callbacks.length; i++) {
+        actions[i].onclick = function(callback) {
+          callback();
+          dialog.close();
+        }.bind(this, callbacks.shift());
+      }
+      if (args) {
+        dialog.querySelector('.body').setAttribute('data-l10n-args', args);
+      }
       setTimeout(() => { dialog.open(); }, DIALOG_SHOW_TIMEOUT);
     },
 
     handleEvent: function(e) {
       switch (e.type) {
+      // Show the settings menu when the user long-presses and we aren't in
+      // a drag
+      case 'contextmenu':
+        if (!document.body.classList.contains('dragging')) {
+          this.showActionDialog(this.settingsDialog, null,
+            [() => {
+               new MozActivity({
+                 name: 'configure',
+                 data: {
+                   target: 'device',
+                   section: 'homescreen'
+                 }
+               });
+             }]);
+          e.stopImmediatePropagation();
+          e.preventDefault();
+        }
+        break;
+
       // Display the top shadow when scrolling down
       case 'scroll':
         var position = this.scrollable.scrollTop;
@@ -427,14 +463,16 @@ const SETTINGS_VERSION = 0;
             break;
 
           case 'installing':
-            this.showDownloadDialog(this.cancelDownload, icon.name,
-              () => { icon.app.cancelDownload(); });
+            this.showActionDialog(this.cancelDownload,
+              JSON.stringify({ name: icon.name }),
+              [() => { icon.app.cancelDownload(); }]);
             break;
 
           case 'error':
           case 'paused':
-            this.showDownloadDialog(this.resumeDownload, icon.name,
-              () => { icon.app.download(); });
+            this.showActionDialog(this.resumeDownload,
+              JSON.stringify({ name: icon.name }),
+              [() => { icon.app.download(); }]);
             break;
 
           default:
