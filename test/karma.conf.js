@@ -1,3 +1,4 @@
+/* global module */
 // Karma configuration
 'use strict';
 
@@ -27,5 +28,5 @@ module.exports = function(config) {
         prefs: {'dom.webcomponents.enabled': true}
       }
     }
-  })
+  });
 };

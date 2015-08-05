@@ -81,7 +81,8 @@
               }
 
               this.datastore = stores[0];
-              this.datastore.addEventListener('change', this.onChange.bind(this));
+              this.datastore.addEventListener('change',
+                                              this.onChange.bind(this));
               resolve();
             }, resolve);
           })

@@ -1,4 +1,4 @@
-/* global sinon, assert, suite, setup, teardown, test */
+/* global sinon, assert, suite, setup, teardown, test, app */
 'use strict';
 
 suite('Homescreen app', function() {

@@ -1,3 +1,5 @@
+/* global MozActivity, HomeMetadata, Datastore */
+/* jshint nonew: false */
 'use strict';
 
 /**
@@ -116,7 +118,7 @@ const SETTINGS_VERSION = 0;
             resolve();
           };
           request.onerror = (e) => {
-            console.error("Error calling getAll: " + request.error.name);
+            console.error('Error calling getAll: ' + request.error.name);
             resolve();
           };
         }),
@@ -409,12 +411,9 @@ const SETTINGS_VERSION = 0;
       }
 
       var actions = dialog.getElementsByClassName('action');
-      for (var i = 0, iLen = actions.length;
-           i < iLen && callbacks.length; i++) {
-        actions[i].onclick = function(callback) {
-          callback();
-          dialog.close();
-        }.bind(this, callbacks.shift());
+      for (var i = 0, iLen = Math.min(actions.length, callbacks.length);
+           i < iLen; i++) {
+        actions[i].onclick = callbacks[i];
       }
       if (args) {
         dialog.querySelector('.body').setAttribute('data-l10n-args', args);
@@ -423,6 +422,8 @@ const SETTINGS_VERSION = 0;
     },
 
     handleEvent: function(e) {
+      var icon;
+
       switch (e.type) {
       // Show the settings menu when the user long-presses and we aren't in
       // a drag
@@ -437,6 +438,7 @@ const SETTINGS_VERSION = 0;
                    section: 'homescreen'
                  }
                });
+               this.settingsDialog.close();
              }]);
           e.stopImmediatePropagation();
           e.preventDefault();
@@ -455,7 +457,7 @@ const SETTINGS_VERSION = 0;
 
       // App launching
       case 'activate':
-        var icon = e.detail.target.firstElementChild;
+        icon = e.detail.target.firstElementChild;
 
         switch (icon.state) {
           case 'unrecoverable':
@@ -465,14 +467,20 @@ const SETTINGS_VERSION = 0;
           case 'installing':
             this.showActionDialog(this.cancelDownload,
               JSON.stringify({ name: icon.name }),
-              [() => { icon.app.cancelDownload(); }]);
+              [() => {
+                 icon.app.cancelDownload();
+                 this.cancelDownload.close();
+               }]);
             break;
 
           case 'error':
           case 'paused':
             this.showActionDialog(this.resumeDownload,
               JSON.stringify({ name: icon.name }),
-              [() => { icon.app.download(); }]);
+              [() => {
+                 icon.app.download();
+                 this.resumeDownload.close();
+               }]);
             break;
 
           default:
@@ -485,7 +493,7 @@ const SETTINGS_VERSION = 0;
       case 'drag-start':
         document.body.classList.add('dragging');
         this.scrollable.style.overflow = 'hidden';
-        var icon = e.detail.target.firstElementChild;
+        icon = e.detail.target.firstElementChild;
 
         this.draggingEditable = !!icon.bookmark;
         this.draggingRemovable = this.draggingEditable || !!icon.app.removable;
@@ -523,7 +531,7 @@ const SETTINGS_VERSION = 0;
           return;
         }
 
-        var icon = e.detail.target.firstElementChild;
+        icon = e.detail.target.firstElementChild;
 
         if (icon.app && icon.app.removable) {
           e.preventDefault();
@@ -675,7 +683,7 @@ const SETTINGS_VERSION = 0;
         };
 
         for (var child of this.icons.children) {
-          var icon = child.firstElementChild;
+          icon = child.firstElementChild;
           if (icon.app && icon.app.manifestURL === e.application.manifestURL) {
             var id = e.application.manifestURL + '/' +
               (icon.entryPoint ? icon.entryPoint : '');
