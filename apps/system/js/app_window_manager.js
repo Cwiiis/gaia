@@ -484,6 +484,8 @@
       if (this._activeApp) {
         this.debug(' Resizing ' + this._activeApp.name);
         if (!this._activeApp.isTransitioning()) {
+          console.log('XXX ' + this._activeApp.name +
+                      ': appWindowManager._handle_system-resize');
           var p = this._activeApp.resize();
           if (typeof evt.detail.waitUntil === 'function') {
             evt.detail.waitUntil(p);
@@ -918,6 +920,8 @@
       // Resize when opened.
       // Note: we will not trigger reflow if the final size
       // is the same as its current value.
+      console.log('XXX ' + this._activeApp.name +
+                  ': appWindowManager._updateActiveApp()');
       this._activeApp.resize();
       if (appHasChanged) {
         if (this.shrinkingUI && this.shrinkingUI.isActive()) {
@@ -979,6 +983,7 @@
         var home = this.service.query('getHomescreen');
         if (home) {
           if (home.isActive()) {
+            console.log('XXX Window manager setting home visible');
             home.setVisible(true);
           } else {
             this.display();
@@ -994,6 +999,8 @@
       var { activity, notificationId } = detail;
       if (activity || notificationId) {
         if (activeApp && !activeApp.isHomescreen) {
+          console.log('XXX 1 Window manager setting ' +
+                      activeApp.name + ' visible');
           activeApp.setVisible(true);
           if (activity) {
             this.fireActivity(activity);
@@ -1010,6 +1017,8 @@
         }
       } else {  // it don't have the detail we can handle.
         if (activeApp && !activeApp.isHomescreen) {
+          console.log('XXX 2 Window manager setting ' +
+                      activeApp.name + ' visible');
           activeApp.setVisible(true);
         } else {
           launchHomescreen();

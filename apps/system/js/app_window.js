@@ -264,6 +264,8 @@
    */
   AppWindow.prototype.setVisible =
     function aw_setVisible(visible, doNotPropagate) {
+      console.log('XXX ' + this.name +
+                  ': setVisible(' + visible + ', ' + doNotPropagate + ')');
       this.setVisibleForScreenReader(visible);
       if (!doNotPropagate && this.frontWindow && this.frontWindow.isActive()) {
         this.frontWindow.setVisible(visible);
@@ -299,6 +301,8 @@
    */
   AppWindow.prototype.setVisibleForScreenReader =
     function aw_setVisibleForScreenReader(visible) {
+      console.log('XXX ' + this.name +
+                  ': setVisibleForScreenReader(' + visible + ')');
       if (!this.element) {
         return;
       }
@@ -317,6 +321,7 @@
    * So this shouldn't be invoked by others directly.
    */
   AppWindow.prototype._showFrame = function aw__showFrame() {
+    console.log('XXX ' + this.name + ': showFrame');
     this.debug('before showing frame');
     this.reviveBrowser();
 
@@ -345,6 +350,7 @@
    * So this shouldn't be invoked by others directly.
    */
   AppWindow.prototype._hideFrame = function aw__hideFrame() {
+    console.log('XXX ' + this.name + ': hideFrame');
     this.debug('before hiding frame');
 
     // If we're already hidden, we have nothing to do!
@@ -993,14 +999,17 @@
   };
 
   AppWindow.prototype._handle__orientationchange = function(evt) {
+    console.log('XXX ' + this.name + ': _handle__orientationchange(evt)');
     if (this.isActive()) {
       this.frontWindow &&
         this.frontWindow.broadcast('orientationchange');
 
       if (!this.isHomescreen) {
+        console.log('XXX ' + this.name +
+                    ': _resize call from orientationchange');
         this._resize(evt.detail);
         return;
-      // XXX: Preventing orientaiton of homescreen app is changed by background
+      // XXX: Preventing orientation of homescreen app is changed by background
       //      app. It's a workaround for bug 1089951.
       //      It should be remove once bug 1043102 is done.
       } else if (Service.query('getTopMostWindow') &&
@@ -1014,6 +1023,7 @@
     this.element.style.width = width + 'px';
     this.element.style.height = height + 'px';
 
+    console.log('XXX Size: ' + width + 'x' + height);
     // The homescreen doesn't have an identification overlay
     if (this.isHomescreen) {
       return;
@@ -1652,6 +1662,7 @@
     };
 
   AppWindow.prototype._resize = function aw__resize(ignoreKeyboard) {
+    console.log('XXX ' + this.name + ': _resize()');
     var height, width;
     this.debug('force RESIZE...');
     if (!ignoreKeyboard && Service.query('keyboardEnabled')) {
@@ -1725,6 +1736,7 @@
   * ![AppWindow resize flow chart](http://i.imgur.com/bUMm4VM.png)
   */
   AppWindow.prototype.resize = function aw_resize() {
+    console.log('XXX ' + this.name + ': resize()');
     if (this.isDead()) {
       return;
     }
@@ -1766,11 +1778,14 @@
    * Lock the orientation for this app anyway.
    */
   AppWindow.prototype.lockOrientation = function(forceOrientation) {
+    console.log('XXX ' + this.name +
+                ': lockOrientation(' + forceOrientation + ')');
     var manifest = this.manifest || this.config.manifest;
     var orientation = forceOrientation ||
                       manifest && manifest.orientation ||
                       Service.query('globalOrientation');
     if (orientation) {
+      console.log('XXX locking to ' + orientation);
       var rv = screen.mozLockOrientation(orientation);
 
       if (rv === false) {
@@ -1780,6 +1795,7 @@
         this.debug(' locking screen orientation to ' + orientation);
       }
     } else {  // If no orientation was requested, then let it rotate
+      console.log('XXX unlocking');
       screen.mozUnlockOrientation();
       this.debug(' Unlocking screen orientation..');
     }
@@ -1792,6 +1808,7 @@
    */
   AppWindow.prototype.setOrientation =
     function aw_setOrientation() {
+      console.log('XXX ' + this.name + ': setOrientation()');
       if (!this.getBottomMostWindow().isActive()) {
         return;
       }
@@ -2047,7 +2064,8 @@
       setTimeout(callback);
     });
     if (this.isHomescreen) {
-      this.setVisible(true);
+      /*console.log('XXX Homescreen ready, setting visible');
+      this.setVisible(true);*/
       return;
     }
     this.tryWaitForFullRepaint(function() {

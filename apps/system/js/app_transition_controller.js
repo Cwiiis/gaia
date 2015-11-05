@@ -222,6 +222,7 @@
       if (!this.app || !this.app.element) {
         return;
       }
+      console.log('XXX ' + this.app.name + ': handle_opening()');
       if (this.app.loaded) {
         var self = this;
         this.app.element.addEventListener('_opened', function onopen() {
@@ -253,6 +254,7 @@
         return;
       }
 
+      console.log('XXX ' + this.app.name + ': handle_opened()');
       this.app.reviveBrowser();
       this.resetTransition();
       this.app.element.removeAttribute('aria-hidden');

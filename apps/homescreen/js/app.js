@@ -1046,6 +1046,8 @@
         break;
 
       case 'resize':
+        console.log('XXX Homescreen window resized to ' +
+                    window.innerWidth + 'x' + window.innerHeight);
         this.icons.synchronise();
         this.refreshGridSize();
         this.snapScrollPosition();

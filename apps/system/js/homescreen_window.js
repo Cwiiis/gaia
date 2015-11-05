@@ -188,6 +188,7 @@
   HomescreenWindow.prototype.eventPrefix = 'homescreen';
 
   HomescreenWindow.prototype.toggle = function hw_toggle(visible) {
+    console.log('XXX HomescreenWindow.toggle(' + visible + ')');
     this.ensure();
     if (this.browser.element) {
       this.setVisible(visible);
@@ -221,6 +222,7 @@
   *
   */
   HomescreenWindow.prototype.resize = function aw_resize() {
+    console.log('XXX ' + this.name + ': HomescreenWindow.resize()');
     this.debug('request RESIZE...');
     this.debug(' will resize... ');
     return this._resize();
