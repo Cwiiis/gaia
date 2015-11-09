@@ -1018,16 +1018,17 @@
       }
     }
 
+    // The homescreen doesn't have an identification overlay
+    if (this.isHomescreen) {
+      return;
+    }
+
     var width = Service.query('LayoutManager.width');
     var height = Service.query('getHeightFor', this);
     this.element.style.width = width + 'px';
     this.element.style.height = height + 'px';
 
     console.log('XXX Size: ' + width + 'x' + height);
-    // The homescreen doesn't have an identification overlay
-    if (this.isHomescreen) {
-      return;
-    }
 
     // If the screenshot doesn't match the new orientation hide it
     if (this.width != width) {

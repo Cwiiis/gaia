@@ -922,7 +922,7 @@
       // is the same as its current value.
       console.log('XXX ' + this._activeApp.name +
                   ': appWindowManager._updateActiveApp()');
-      this._activeApp.resize();
+      //this._activeApp.resize();
       if (appHasChanged) {
         if (this.shrinkingUI && this.shrinkingUI.isActive()) {
           this.shrinkingUI.stop();
